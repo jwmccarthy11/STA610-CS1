@@ -5,6 +5,59 @@ date: "9/24/2021"
 output: pdf_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, message=FALSE}
+library(tidyverse)
+library(janitor)
+
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+load('streetrx.RData')
+
+# subset for group drug
+streetrx_subset <- streetrx %>%
+  drop_na() %>%
+  clean_names() %>%
+  filter(api_temp == 'morphine')
+
+streetrx_subset %>% ggplot(aes(x=ppm)) +
+  geom_histogram()
+```
+
+Heavily right-skewed. Remove values > 10 to get better idea of distribution.
+
+```{r}
+streetrx_clean <- streetrx_subset %>%
+  filter(ppm < 10)
+```
+
+```{r}
+streetrx_clean %>% ggplot(aes(x=ppm)) +
+  geom_histogram(
+    aes(y=..density..), 
+    color='black', 
+    size=0.75,
+    linetype='dashed', 
+    fill=rainbow(15), 
+    bins=15
+  ) +
+  geom_density(alpha=0.25, fill='lightblue', bw=0.3, size=0.75) +
+  labs(title='Distribution of Morphine ppm (w/out outliers)')
+```
+
+Clear right-skewed distribution. Consider log transform of response.
+
+```{r}
+streetrx_clean %>% ggplot(aes(x=log(ppm))) +
+  geom_histogram(
+    aes(y=..density..), 
+    color='black', 
+    size=0.75,
+    linetype='dashed', 
+    fill=rainbow(15),
+    bins=15
+  ) +
+  geom_density(alpha=0.25, fill='lightblue', bw=0.3, size=0.75) +
+  labs(title='Distribution of Morphine log(ppm) (w/out outliers)')
 ```
