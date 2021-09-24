@@ -1,0 +1,10 @@
+---
+title: "STA610 Case Study 1"
+author: "Emily Gentles, Weiyi Liu, Jack McCarthy, Qinzhe Wang"
+date: "9/24/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
