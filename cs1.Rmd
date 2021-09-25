@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo=FALSE, warning=FALSE)
 load('streetrx.RData')
 
 # subset for group drug
-streetrx_clean <- streetrx %>%
+morph_data <- streetrx %>%
   drop_na() %>%
   clean_names() %>%
   filter(api_temp == 'morphine')
@@ -28,14 +28,17 @@ streetrx_clean <- streetrx %>%
 
 # EDA
 
+### Response Distribution
+
 First, a look at the distributions of the response variable "ppm". Observations 
-with ppm < 10 were considered so as to avoid the influence of extreme outliers.
+with ppm between the 0.1 and 99.9 percentiles were considered so as to avoid 
+the influence of extreme outliers on the analysis of the ppm distribution.
 
 ```{r, fig.width=10, fig.height=3.5}
-streetrx_outlier <- streetrx_clean %>%
-  filter(ppm < 10)
+morph_trunc <- morph_data %>%
+  filter(between(ppm, quantile(ppm, 0.001), quantile(ppm, 0.999)))
 
-p1 <- streetrx_outlier %>%
+p1 <- morph_trunc %>%
   ggplot(aes(x=ppm)) +
     geom_histogram(
       aes(y=..density..), 
@@ -44,13 +47,13 @@ p1 <- streetrx_outlier %>%
       size=0.5,
       fill='lightblue', 
       alpha=0.5,
-      bins=15
+      bins=20
     ) +
     geom_density(size=0.75, bw=0.3) +
     labs(title='Distribution of morphine ppm') +
     theme_classic()
 
-p2 <- streetrx_outlier %>%
+p2 <- morph_trunc %>%
   ggplot(aes(x=log(ppm))) +
     geom_histogram(
       aes(y=..density..), 
@@ -59,18 +62,59 @@ p2 <- streetrx_outlier %>%
       size=0.5,
       fill='lightcoral', 
       alpha=0.5,
-      bins=15
+      bins=20
     ) +
     geom_density(size=0.75, bw=0.3) +
     labs(title='Distribution of morphine log(ppm)') +
+    xlim(-7, 3) +
     theme_classic()
 
 grid.arrange(p1, p2, ncol=2)
 ```
 
-The distribution of the raw ppm value is right-skewed, so we may consider 
-applying a log transformation. The distribution of the resulting log(ppm) values 
-is shown on the right, and it appears closer to the desired normal. Furthermore, 
-ppm is nonnegative, so we will not lose any observations should we wish to apply 
-the log transformation. As such, it may be beneficial to conduct our analysis on 
-log(ppm) rather than ppm.
+The distribution of ppm is clearly right-skewed, and it is strictly nonnegative 
+in value, so a log transformation may be appropriate. The distribution of 
+log(ppm) is given above, and appears closer to the desired normal.
+
+### Predictor-Response Relationships
+
+Next we may look at the relationship between state and log(ppm).
+
+```{r, fig.width=10, fig.height=3}
+morph_state <- morph_trunc %>%
+  filter(state %in% state.name) %>%
+  mutate(state_abv=state.abb[match(state,state.name)])
+
+grand_mean <- mean(morph_state$ppm)
+
+p3 <- morph_state %>%
+  group_by(state_abv) %>%
+  summarise(n = n(), mean = mean(ppm)) %>%
+  ggplot(aes(x=n, y=mean)) +
+    geom_hline(
+      aes(yintercept=grand_mean),
+      linetype='dashed',
+      color='red',
+      size=0.75
+    ) +
+    geom_point() +
+    labs(x='sample size', y='mean ppm') +
+    theme_classic()
+
+p4 <- morph_state %>%
+  ggplot(aes(y=log(ppm), x=state_abv)) +
+    geom_boxplot(
+      fill=rainbow(50),
+      alpha=0.5    
+    ) +
+    scale_x_discrete(guide=guide_axis(angle = 90)) +
+    theme_classic() +
+    labs(x='state')
+
+plot_grid(p3, p4, ncol=2, rel_widths=c(0.275, 0.725))
+```
+
+We observe that the within-state means for states with higher sample sizes in 
+general adhere more closely to the grand mean. It is also evident that the log(ppm) 
+distributions differ little as compared to the within-state variance. This is 
+conducive to the borrowing of information between states.
