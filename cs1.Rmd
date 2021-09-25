@@ -8,56 +8,69 @@ output: pdf_document
 ```{r setup, include=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)
+library(gridExtra)
+library(cowplot)
 
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE)
 ```
 
 ```{r}
 load('streetrx.RData')
 
 # subset for group drug
-streetrx_subset <- streetrx %>%
+streetrx_clean <- streetrx %>%
   drop_na() %>%
   clean_names() %>%
   filter(api_temp == 'morphine')
-
-streetrx_subset %>% ggplot(aes(x=ppm)) +
-  geom_histogram()
 ```
 
-Heavily right-skewed. Remove values > 10 to get better idea of distribution.
+# Introduction
 
-```{r}
-streetrx_clean <- streetrx_subset %>%
+# EDA
+
+First, a look at the distributions of the response variable "ppm". Observations 
+with ppm < 10 were considered so as to avoid the influence of extreme outliers.
+
+```{r, fig.width=10, fig.height=3.5}
+streetrx_outlier <- streetrx_clean %>%
   filter(ppm < 10)
+
+p1 <- streetrx_outlier %>%
+  ggplot(aes(x=ppm)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=15
+    ) +
+    geom_density(size=0.75, bw=0.3) +
+    labs(title='Distribution of morphine ppm') +
+    theme_classic()
+
+p2 <- streetrx_outlier %>%
+  ggplot(aes(x=log(ppm))) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightcoral', 
+      alpha=0.5,
+      bins=15
+    ) +
+    geom_density(size=0.75, bw=0.3) +
+    labs(title='Distribution of morphine log(ppm)') +
+    theme_classic()
+
+grid.arrange(p1, p2, ncol=2)
 ```
 
-```{r}
-streetrx_clean %>% ggplot(aes(x=ppm)) +
-  geom_histogram(
-    aes(y=..density..), 
-    color='black', 
-    size=0.75,
-    linetype='dashed', 
-    fill=rainbow(15), 
-    bins=15
-  ) +
-  geom_density(alpha=0.25, fill='lightblue', bw=0.3, size=0.75) +
-  labs(title='Distribution of Morphine ppm (w/out outliers)')
-```
-
-Clear right-skewed distribution. Consider log transform of response.
-
-```{r}
-streetrx_clean %>% ggplot(aes(x=log(ppm))) +
-  geom_histogram(
-    aes(y=..density..), 
-    color='black', 
-    size=0.75,
-    linetype='dashed', 
-    fill=rainbow(15),
-    bins=15
-  ) +
-  geom_density(alpha=0.25, fill='lightblue', bw=0.3, size=0.75) +
-  labs(title='Distribution of Morphine log(ppm) (w/out outliers)')
-```
+The distribution of the raw ppm value is right-skewed, so we may consider 
+applying a log transformation. The distribution of the resulting log(ppm) values 
+is shown on the right, and it appears closer to the desired normal. Furthermore, 
+ppm is nonnegative, so we will not lose any observations should we wish to apply 
+the log transformation. As such, it may be beneficial to conduct our analysis on 
+log(ppm) rather than ppm.
