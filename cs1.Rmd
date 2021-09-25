@@ -51,7 +51,7 @@ p1 <- morph_trunc %>%
     ) +
     geom_density(size=0.75, bw=0.3) +
     labs(title='Distribution of morphine ppm') +
-    theme_classic()
+    theme_bw()
 
 p2 <- morph_trunc %>%
   ggplot(aes(x=log(ppm))) +
@@ -67,7 +67,7 @@ p2 <- morph_trunc %>%
     geom_density(size=0.75, bw=0.3) +
     labs(title='Distribution of morphine log(ppm)') +
     xlim(-7, 3) +
-    theme_classic()
+    theme_bw()
 
 grid.arrange(p1, p2, ncol=2)
 ```
@@ -98,8 +98,8 @@ p3 <- morph_state %>%
       size=0.75
     ) +
     geom_point() +
-    labs(x='sample size', y='mean ppm') +
-    theme_classic()
+    labs(x='sample size', y='mean log(ppm)') +
+    theme_bw()
 
 p4 <- morph_state %>%
   ggplot(aes(y=log(ppm), x=state_abv)) +
@@ -108,7 +108,7 @@ p4 <- morph_state %>%
       alpha=0.5    
     ) +
     scale_x_discrete(guide=guide_axis(angle = 90)) +
-    theme_classic() +
+    theme_bw() +
     labs(x='state')
 
 plot_grid(p3, p4, ncol=2, rel_widths=c(0.275, 0.725))
