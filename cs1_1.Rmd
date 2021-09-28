@@ -1,0 +1,356 @@
+---
+title: "STA610 Case Study 1"
+author: "Emily Gentles, Weiyi Liu, Jack McCarthy, Qinzhe Wang"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message = FALSE, cache = TRUE)
+library(tidyverse)
+library(janitor)
+library(gridExtra)
+library(cowplot)
+
+library(knitr)
+require(magrittr)
+require(dplyr)
+library(kableExtra)
+library(readr)
+library(tidyr)
+library(broom)
+library(lme4)
+library(glmmTMB)
+library(sjPlot)
+library(brms)
+library(coda)
+library(rstan)
+library(tidybayes)
+library(naniar)
+library(olsrr)
+```
+
+```{r}
+load('streetrx.RData')
+```
+
+# Introduction
+
+
+# EDA
+
+
+### Missing Values
+
+```{r, fig.width=6, fig.height=3.5}
+morph_data_na_checking <- streetrx[streetrx$api_temp == "morphine",]
+
+morph_data_na_checking[morph_data_na_checking == ""] <- NA
+
+morph_data_na_checking <- droplevels(morph_data_na_checking)
+  
+gg_miss_upset(morph_data_na_checking)
+```
+
+```{r}
+# subset for group drug
+streetrx[streetrx == ""] <- NA
+morph_data <- streetrx %>%
+  drop_na() %>%
+  clean_names() %>%
+  filter(api_temp == 'morphine') %>%
+  mutate(
+    quarter=substring(yq_pdate, 5, 5),
+    year=substring(yq_pdate, 1, 4)
+  )
+```
+
+
+### Response Distribution
+
+First, a look at the distributions of the response variable "ppm". Observations 
+with ppm between the 0.1 and 99.9 percentiles were considered so as to avoid 
+the influence of extreme outliers on the analysis of the ppm distribution.
+
+
+
+```{r, fig.width=10, fig.height=3.5}
+morph_trunc <- morph_data %>%
+  filter(between(ppm, quantile(ppm, 0.001), quantile(ppm, 0.999)))
+
+p1 <- morph_trunc %>%
+  ggplot(aes(x=ppm)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=20
+    ) +
+    geom_density(size=0.75, bw=0.3) +
+    labs(title='Distribution of morphine ppm') +
+    theme_bw()
+
+p2 <- morph_trunc %>%
+  ggplot(aes(x=log(ppm))) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightcoral', 
+      alpha=0.5,
+      bins=20
+    ) +
+    geom_density(size=0.75, bw=0.3) +
+    labs(title='Distribution of morphine log(ppm)') +
+    xlim(-7, 3) +
+    theme_bw()
+
+grid.arrange(p1, p2, ncol=2)
+```
+
+The distribution of ppm is clearly right-skewed, and it is strictly nonnegative 
+in value, so a log transformation may be appropriate. The distribution of 
+log(ppm) is given above, and appears closer to the desired normal.
+
+### state vs. log(ppm)
+
+
+```{r}
+state_size <- morph_data %>%
+  group_by(state) %>%
+  summarise(n = n(), .groups = "drop")  %>%
+  arrange(n) %>%
+  pivot_wider(names_from = state,
+            values_from = n)
+
+# dim(state_size)[2]
+small_sample <- state_size %>% 
+  select(1:5) %>%
+  kable(caption = "7 states with smallest sample size ",
+        align = "c", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position"))
+
+large_sample <- state_size %>% select(46:50) %>%
+  kable(caption = "7 states with largest sample size ",
+        align = "c", booktabs = TRUE) %>%
+  kable_styling(latex_options = c("hold_position"))
+
+small_sample
+large_sample
+```
+
+
+```{r, fig.width=10, fig.height=3}
+morph_state <- morph_trunc %>%
+  filter(state %in% state.name) %>%
+  mutate(state_abv=state.abb[match(state,state.name)])
+
+grand_mean <- mean(morph_state$ppm)
+
+p3 <- morph_state %>%
+  group_by(state_abv) %>%
+  summarise(n = n(), mean = mean(ppm)) %>%
+  ggplot(aes(x=n, y=mean)) +
+    geom_hline(
+      aes(yintercept=grand_mean),
+      linetype='dashed',
+      color='red',
+      size=0.75
+    ) +
+    geom_point() +
+    labs(x='sample size', y='mean log(ppm)') +
+    theme_bw()
+
+p4 <- morph_state %>%
+  ggplot(aes(y=log(ppm), x=state_abv)) +
+    geom_boxplot(
+      fill=rainbow(49),
+      alpha=0.5    
+    ) +
+    scale_x_discrete(guide=guide_axis(angle = 90)) +
+    theme_bw() +
+    labs(x='state')
+
+grid.arrange(p3, p4, ncol= 2)
+# plot_grid(p3, p4,rel_widths = c(1, 2))
+# is this what you want?
+```
+
+We observe that the within-state means for states with higher sample sizes in 
+general adhere more closely to the grand mean. It is also evident that the log(ppm) 
+distributions differ little as compared to the within-state variance. This is 
+conducive to the borrowing of information between states.
+
+
+### region vs. log(ppm)
+
+We also have access to the broader region in which a purchase is made. This 
+could be useful if we wanted to develop a simpler model that still captured 
+variation by purchase location.
+
+```{r, fig.height=3, fig.width=10}
+t1 <- morph_state %>%
+  group_by(usa_region) %>%
+  summarise(n=n(), mean=round(mean(log(ppm)), 3)) %>%
+  tableGrob()
+
+p5 <- morph_state %>%
+  ggplot(aes(y=log(ppm), x=usa_region)) +
+    geom_boxplot() +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    ) +
+    theme_bw()
+
+grid.arrange(t1, p5, ncol=2, widths=c(1, 2))
+```
+
+
+### source vs. log(ppm)
+
+```{r, fig.width=6, fig.height=3.5}
+# unique(morph_data$source)
+
+source_index <- morph_data$source %in% c("Personal",
+                                         "Heard it", 
+                                         "Internet", 
+                                         "Internet Pharmacy", 
+                                         "Drug forum", NA)
+
+morph_data$source[!source_index] <- "Internet"
+
+morph_data <- droplevels(morph_data)
+
+morph_data %>%
+  ggplot(aes(x = source,y = log(ppm))) +
+  geom_boxplot()
+```
+
+### year & quarter vs.log(ppm)
+
+
+```{r,fig.width=10, fig.height=3.5}
+yearplot <- morph_data %>%
+  ggplot(aes(x = year,y = log(ppm))) +
+  geom_boxplot()
+
+quarterplot <- morph_data %>%
+  ggplot(aes(x = quarter,y = log(ppm))) +
+  geom_boxplot()
+
+grid.arrange(yearplot, quarterplot, ncol=2)
+```
+
+### bulk_purchase vs.log(ppm)
+
+```{r, fig.width=6, fig.height=3.5}
+morph_data %>%
+  ggplot(aes(x = bulk_purchase,y = log(ppm))) +
+  geom_boxplot()
+
+```
+
+
+### Primary_Reason vs.log(ppm)
+
+
+```{r, fig.width=6, fig.height=3.5}
+morph_data %>%
+  ggplot(aes(x = primary_reason,y =log(ppm))) +
+  geom_boxplot() +
+  coord_flip()
+
+
+```
+
+
+# Model
+### sth. wrong
+
+```{r}
+
+model1 <- lmer(log(ppm) ~ (1 | state), data = morph_data)
+model2 <- lmer(log(ppm) ~ bulk_purchase + (1 | state), data = morph_data)
+anova(model1, model2) # > 0.05
+
+
+model3 <- lmer(log(ppm) ~ -1 + bulk_purchase  + (1 | state), data = morph_data) 
+
+
+anova(model2, model3) # <0.05, depends
+
+morph_data$source <- fct_explicit_na(morph_data$source, "NA")
+
+model4 <- lmer(log(ppm) ~ bulk_purchase  + source + (1 | state), data = morph_data)
+anova(model2, model4) # >0.05
+
+
+model5 <- lmer(log(ppm) ~ bulk_purchase  + source + year +
+                 (1 | state), data = morph_data)
+model6 <- lmer(log(ppm) ~ bulk_purchase  + source + quarter +
+                 (1 | state), data = morph_data)
+model7 <- lmer(log(ppm) ~ bulk_purchase  + source + 
+                 (1 |year) + (1 | state), data = morph_data)
+
+
+anova(model2, model5) # >0.05
+anova(model2, model6) # >0.05
+anova(model2, model7) # >0.05
+
+
+```
+
+### final model
+
+**log(ppm) ~  bulk_purchase + (1 | state)**
+
+#### consider using BIC
+
+### continue...
+
+```{r, fig.width=6, fig.height=3.5}
+plot_model(model3, type = "re", grid = F, sort = T)
+```
+
+
+
+```{r}
+summary(model3)
+```
+
+```{r}
+coef(summary(model3))
+```
+
+
+```{r}
+confint(model3)
+```
+
+# Influence
+
+```{r}
+model3_inf<- influence(model3, obs = TRUE)
+cooks_distance <- cooks.distance(model3_inf)
+infindiv <- cooks_distance>4/nrow(morph_data)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
