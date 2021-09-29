@@ -185,9 +185,7 @@ p4 <- morph_state %>%
     theme_bw() +
     labs(x='state')
 
-grid.arrange(p3, p4, ncol= 2)
-# plot_grid(p3, p4,rel_widths = c(1, 2))
-# is this what you want?
+cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
 ```
 
 We observe that the within-state means for states with higher sample sizes in 
