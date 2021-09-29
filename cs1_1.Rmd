@@ -278,18 +278,18 @@ morph_data %>%
 
 model1 <- lmer(log(ppm) ~ (1 | state), data = morph_data)
 model2 <- lmer(log(ppm) ~ bulk_purchase + (1 | state), data = morph_data)
-anova(model1, model2) # > 0.05
+anova(model1, model2) # > 0.05, BIC favors model 1
 
 
 model3 <- lmer(log(ppm) ~ -1 + bulk_purchase  + (1 | state), data = morph_data) 
 
 
-anova(model2, model3) # <0.05, depends
+anova(model2, model3) # <0.05, depends, also interesting that BIC is same for both model 2 and 3
 
 morph_data$source <- fct_explicit_na(morph_data$source, "NA")
 
 model4 <- lmer(log(ppm) ~ bulk_purchase  + source + (1 | state), data = morph_data)
-anova(model2, model4) # >0.05
+anova(model2, model4) # >0.05, BIC favors model 2
 
 
 model5 <- lmer(log(ppm) ~ bulk_purchase  + source + year +
@@ -300,9 +300,9 @@ model7 <- lmer(log(ppm) ~ bulk_purchase  + source +
                  (1 |year) + (1 | state), data = morph_data)
 
 
-anova(model2, model5) # >0.05
-anova(model2, model6) # >0.05
-anova(model2, model7) # >0.05
+anova(model2, model5) # >0.05, BIC favors model 2
+anova(model2, model6) # >0.05, BIC favors model 2
+anova(model2, model7) # >0.05, BIC favors model 2
 
 
 ```
@@ -343,6 +343,20 @@ infindiv <- cooks_distance>4/nrow(morph_data)
 ```
 
 
+## Heterogeneity across states
+
+Interclass correlation is 0.0159, very small so very little correlation across states.
+Including bulk purchases, the interclass correlation is 0.016, so bulk purchase actually increases the heterogeneity across states by a very small amount.
+
+```{r}
+sigma2hat <- sigma(model1)*sigma(model1)
+tau2hat <- as.numeric(VarCorr(model1)$state)
+c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
+
+sigma2hat <- sigma(model3)*sigma(model3)
+tau2hat <- as.numeric(VarCorr(model3)$state)
+c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
+```
 
 
 
