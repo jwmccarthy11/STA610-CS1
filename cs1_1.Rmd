@@ -34,6 +34,15 @@ library(olsrr)
 load('streetrx.RData')
 ```
 
+Qinzhe - Checker: Double-checks the work for reproducibility and errors. Also responsible for submitting the report and presentation files.
+         Coordinator: Keeps everyone on task and makes sure everyone is involved. Also responsible for coordinating team meetings and defining the objectives for each meeting.
+
+Emily - Presenter: Primarily responsible for organizing and putting the team presentations together.
+
+Jack - Programmer: Primarily responsible for all things coding. The programmer is responsible for putting everyone’s code together and making sure the final product is “readable”.
+
+Wiyi - Writer: Primarily responsible for putting together the final report.
+
 # Introduction
 
 
@@ -118,6 +127,7 @@ log(ppm) is given above, and appears closer to the desired normal.
 
 ### state vs. log(ppm)
 
+We see that there are 4 states that have a sample size of 1, North Dakota, Vermont, Washington DC, and Wyoming, as well as 1 state that has a sample size of 2, Alaska. Due to the extremely small sample sizes we decided to remove these states form our dataset to avoid computational instability.
 
 ```{r}
 state_size <- morph_data %>%
