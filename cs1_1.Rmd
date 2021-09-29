@@ -81,8 +81,6 @@ First, a look at the distributions of the response variable "ppm". Observations
 with ppm between the 0.1 and 99.9 percentiles were considered so as to avoid 
 the influence of extreme outliers on the analysis of the ppm distribution.
 
-
-
 ```{r, fig.width=10, fig.height=3.5}
 morph_trunc <- morph_data %>%
   filter(between(ppm, quantile(ppm, 0.001), quantile(ppm, 0.999)))
@@ -364,6 +362,8 @@ c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
 sigma2hat <- sigma(model3)*sigma(model3)
 tau2hat <- as.numeric(VarCorr(model3)$state)
 c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
+
+plot(model1)
 ```
 
 
