@@ -151,6 +151,8 @@ large_sample <- state_size %>% select(46:50) %>%
 
 small_sample
 large_sample
+
+#morph_data <- morph_data %>% filter(state != "North Dakota" | state != "Washington, DC" | state != "Vermont")
 ```
 
 
@@ -357,6 +359,8 @@ infindiv <- cooks_distance>4/nrow(morph_data)
 
 Interclass correlation is 0.0159, very small so very little correlation across states.
 Including bulk purchases, the interclass correlation is 0.016, so bulk purchase actually increases the heterogeneity across states by a very small amount.
+
+Make table with results for all models tested in ANOVA
 
 ```{r}
 sigma2hat <- sigma(model1)*sigma(model1)
