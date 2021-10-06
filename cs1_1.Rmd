@@ -11,7 +11,6 @@ library(tidyverse)
 library(janitor)
 library(gridExtra)
 library(cowplot)
-
 library(knitr)
 require(magrittr)
 require(dplyr)
@@ -28,6 +27,11 @@ library(rstan)
 library(tidybayes)
 library(naniar)
 library(olsrr)
+
+# devtools::install_github("goodekat/redres")
+library(redres)
+
+
 ```
 
 ```{r}
@@ -72,6 +76,13 @@ morph_data <- streetrx %>%
     quarter=substring(yq_pdate, 5, 5),
     year=substring(yq_pdate, 1, 4)
   )
+```
+
+
+```{r}
+# replace state "USA" with "Unknown"
+morph_data$state <- recode_factor(droplevels(morph_data$state), "USA" = "Unknown")
+
 ```
 
 
@@ -137,12 +148,13 @@ state_size <- morph_data %>%
 
 # dim(state_size)[2]
 small_sample <- state_size %>% 
-  select(1:5) %>%
+  dplyr::select(1:5) %>%
   kable(caption = "7 states with smallest sample size ",
         align = "c", booktabs = TRUE) %>%
   kable_styling(latex_options = c("hold_position"))
 
-large_sample <- state_size %>% select(46:50) %>%
+large_sample <- state_size %>% 
+  dplyr::select(46:50) %>%
   kable(caption = "7 states with largest sample size ",
         align = "c", booktabs = TRUE) %>%
   kable_styling(latex_options = c("hold_position"))
@@ -217,7 +229,7 @@ p5 <- morph_state %>%
     ) +
     theme_bw()
 
-grid.arrange(t1, p5, ncol=2, widths=c(1, 2))
+grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 ```
 
 
@@ -280,78 +292,105 @@ morph_data %>%
 
 
 # Model
-### sth. wrong
+
+
+### choose grouping variable
 
 ```{r}
-
-model1 <- lmer(log(ppm) ~ (1 | state), data = morph_data)
-model2 <- lmer(log(ppm) ~ bulk_purchase + (1 | state), data = morph_data)
-anova(model1, model2) # > 0.05, BIC favors model 1
-
-
-model3 <- lmer(log(ppm) ~ -1 + bulk_purchase  + (1 | state), data = morph_data) 
-
-
-anova(model2, model3) # <0.05, depends, also interesting that BIC is same for both model 2 and 3
-
-morph_data$source <- fct_explicit_na(morph_data$source, "NA")
-
-model4 <- lmer(log(ppm) ~ bulk_purchase  + source + (1 | state), data = morph_data)
-anova(model2, model4) # >0.05, BIC favors model 2
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
+mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + price_date + quarter + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
+mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + price_date + quarter + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
 
 
-model5 <- lmer(log(ppm) ~ bulk_purchase  + source + year +
-                 (1 | state), data = morph_data)
-model6 <- lmer(log(ppm) ~ bulk_purchase  + source + quarter +
-                 (1 | state), data = morph_data)
-model7 <- lmer(log(ppm) ~ bulk_purchase  + source + 
-                 (1 |year) + (1 | state), data = morph_data)
-
-
-anova(model2, model5) # >0.05, BIC favors model 2
-anova(model2, model6) # >0.05, BIC favors model 2
-anova(model2, model7) # >0.05, BIC favors model 2
+BIC_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
+re_results <- data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = BIC_score)
+kable(re_results)
 
 
 ```
+
+Choose `State` as our grouping variable
+
+
+
+
+
+```{r}
+# Test date_num
+
+mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
+
+
+mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date  + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
+
+mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr 
+                               + primary_reason + source, REML=F)
+
+mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr +
+                bulk_purchase+ source, REML=F)
+
+mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter  +
+                bulk_purchase + primary_reason + source, REML=F)
+
+
+mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr +
+                bulk_purchase + primary_reason, REML=F)
+
+
+anova(mod_1,mod_drop_date)$`Pr(>Chisq)`[2] # add
+anova(mod_1,mod_drop_quater)$`Pr(>Chisq)`[2]
+anova(mod_1,mod_drop_bulk_purchase)$`Pr(>Chisq)`[2] # add
+anova(mod_1,mod_drop_primary_reason)$`Pr(>Chisq)`[2] # add
+anova(mod_1,mod_drop_mgstr)$`Pr(>Chisq)`[2] # add
+anova(mod_1,mod_drop_source)$`Pr(>Chisq)`[2] 
+```
+
+We now have `price_date`, `bulk_purchase`, `primary_reason` and `mgstr` in our model, regarding `state` as the grouping variable.
+
+
+### Interaction
+
 
 ### final model
 
-**log(ppm) ~  bulk_purchase + (1 | state)**
-
-#### consider using BIC
-
-### continue...
-
-```{r, fig.width=6, fig.height=3.5}
-plot_model(model3, type = "re", grid = F, sort = T)
-```
-
-
+**log(ppm) ~  bulk_purchase + price_date + primary_reason + mgstr + (1 | state)**
 
 ```{r}
-summary(model3)
-```
+mod_final <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date  + mgstr +
+                bulk_purchase + primary_reason, REML=F)
 
-```{r}
-coef(summary(model3))
 ```
 
 
-```{r}
-confint(model3)
+
+```{r error=FALSE, fig.align='center', fig.height=, message=FALSE, warning=FALSE, fig.height=2}
+# resqq <- plot_resqq(mod_final)
+# ranefci <- plot_ranef(mod_final)
+# grid.arrange(resqq, ranefci, ncol = 2)
 ```
+
+
+
 
 # Influence
 
 ```{r}
-model3_inf<- influence(model3, obs = TRUE)
-cooks_distance <- cooks.distance(model3_inf)
-infindiv <- cooks_distance>4/nrow(morph_data)
+# model3_inf<- influence(model3, obs = TRUE)
+# cooks_distance <- cooks.distance(model3_inf)
+# infindiv <- cooks_distance>4/nrow(morph_data)
 ```
 
 
 ## Heterogeneity across states
+
+
+## I removed the orginal model1, instead, we have finall model now (no interaction version)
+## so the the chunck below, I changed the model to be tested to the final model.
 
 Interclass correlation is 0.0159, very small so very little correlation across states.
 Including bulk purchases, the interclass correlation is 0.016, so bulk purchase actually increases the heterogeneity across states by a very small amount.
@@ -359,13 +398,16 @@ Including bulk purchases, the interclass correlation is 0.016, so bulk purchase 
 Make table with results for all models tested in ANOVA
 
 ```{r}
-sigma2hat <- sigma(model1)*sigma(model1)
-tau2hat <- as.numeric(VarCorr(model1)$state)
-c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
+model1 <- mod_final
 
-sigma2hat <- sigma(model3)*sigma(model3)
-tau2hat <- as.numeric(VarCorr(model3)$state)
-c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
+
+# sigma2hat <- sigma(model1)*sigma(model1)
+# tau2hat <- as.numeric(VarCorr(model1)$state)
+# c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
+# 
+# sigma2hat <- sigma(model3)*sigma(model3)
+# tau2hat <- as.numeric(VarCorr(model3)$state)
+# c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
 
 plot(model1)
 ```
