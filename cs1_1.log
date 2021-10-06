@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2021.9.22)  29 SEP 2021 13:03
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (TeX Live 2021/W32TeX) (preloaded format=pdflatex 2021.9.22)  6 OCT 2021 12:52
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -665,115 +665,130 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 
 Package hyperref Warning: Difference (2) between bookmark levels is greater 
-(hyperref)                than one, level fixed on input line 94.
+(hyperref)                than one, level fixed on input line 110.
 
-<cs1_1_files/figure-latex/unnamed-chunk-2-1.pdf, id=68, 433.62pt x 252.945pt>
+<cs1_1_files/figure-latex/unnamed-chunk-2-1.pdf, id=72, 433.62pt x 252.945pt>
 File: cs1_1_files/figure-latex/unnamed-chunk-2-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-2-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-2-1.pdf  used o
-n input line 96.
+n input line 112.
 (pdftex.def)             Requested size: 433.62555pt x 252.94823pt.
-<cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf, id=69, 722.7pt x 252.945pt>
-File: cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (type pdf)
-<use cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf>
-Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf  used o
-n input line 106.
-(pdftex.def)             Requested size: 469.76045pt x 164.41615pt.
 [1
 
 {c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdfte
 x.map} <./cs1_1_files/figure-latex/unnamed-chunk-2-1.pdf>]
+<cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf, id=96, 722.7pt x 252.945pt>
+File: cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (type pdf)
+<use cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf>
+Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf  used o
+n input line 122.
+(pdftex.def)             Requested size: 469.76045pt x 164.41615pt.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 120.
+(Font)              <10> on input line 142.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 120.
+(Font)              <7> on input line 142.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 120.
-<cs1_1_files/figure-latex/unnamed-chunk-6-1.pdf, id=93, 722.7pt x 216.81pt>
+(Font)              <5> on input line 142.
+<cs1_1_files/figure-latex/unnamed-chunk-6-1.pdf, id=97, 722.7pt x 216.81pt>
 File: cs1_1_files/figure-latex/unnamed-chunk-6-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-6-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-6-1.pdf  used o
-n input line 142.
-(pdftex.def)             Requested size: 469.76045pt x 140.92813pt.
-<cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf, id=94, 722.7pt x 216.81pt>
-File: cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf Graphic file (type pdf)
-<use cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf>
-Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf  used o
-n input line 157.
+n input line 164.
 (pdftex.def)             Requested size: 469.76045pt x 140.92813pt.
 [2pdfTeX warning (ext4): destination with the same identifier (name{table.1}) h
 as been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.160 ...e vs.~log(ppm)}\label{source-vs.-logppm}}
-                                                  pdfTeX warning (ext4): destin
-ation with the same identifier (name{table.2}) has been already used, duplicate
- ignored
+l.171 
+      pdfTeX warning (ext4): destination with the same identifier (name{table.2
+}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.160 ...e vs.~log(ppm)}\label{source-vs.-logppm}}
-                                                   <./cs1_1_files/figure-latex/
-unnamed-chunk-4-1.pdf> <./cs1_1_files/figure-latex/unnamed-chunk-6-1.pdf>]
-<cs1_1_files/figure-latex/unnamed-chunk-8-1.pdf, id=120, 433.62pt x 252.945pt>
+l.171 
+       <./cs1_1_files/figure-latex/unnamed-chunk-4-1.pdf> <./cs1_1_files/figure
+-latex/unnamed-chunk-6-1.pdf>]
+<cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf, id=122, 722.7pt x 216.81pt>
+File: cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf Graphic file (type pdf)
+<use cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf>
+Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf  used o
+n input line 179.
+(pdftex.def)             Requested size: 469.76045pt x 140.92813pt.
+<cs1_1_files/figure-latex/unnamed-chunk-8-1.pdf, id=123, 433.62pt x 252.945pt>
 File: cs1_1_files/figure-latex/unnamed-chunk-8-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-8-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-8-1.pdf  used o
-n input line 162.
+n input line 184.
 (pdftex.def)             Requested size: 433.62555pt x 252.94823pt.
-<cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf, id=121, 722.7pt x 252.945pt>
+<cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf, id=124, 722.7pt x 252.945pt>
 File: cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf  used o
-n input line 168.
+n input line 190.
 (pdftex.def)             Requested size: 469.76045pt x 164.41615pt.
-<cs1_1_files/figure-latex/unnamed-chunk-10-1.pdf, id=122, 433.62pt x 252.945pt>
+[3 <./cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf> <./cs1_1_files/figure-lat
+ex/unnamed-chunk-8-1.pdf>]
+<cs1_1_files/figure-latex/unnamed-chunk-10-1.pdf, id=144, 433.62pt x 252.945pt>
 
 File: cs1_1_files/figure-latex/unnamed-chunk-10-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-10-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-10-1.pdf  used 
-on input line 174.
+on input line 196.
 (pdftex.def)             Requested size: 433.62555pt x 252.94823pt.
-[3 <./cs1_1_files/figure-latex/unnamed-chunk-7-1.pdf> <./cs1_1_files/figure-lat
-ex/unnamed-chunk-8-1.pdf> <./cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf>]
-<cs1_1_files/figure-latex/unnamed-chunk-11-1.pdf, id=147, 433.62pt x 252.945pt>
+<cs1_1_files/figure-latex/unnamed-chunk-11-1.pdf, id=145, 433.62pt x 252.945pt>
 
 File: cs1_1_files/figure-latex/unnamed-chunk-11-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-11-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-11-1.pdf  used 
-on input line 180.
+on input line 202.
 (pdftex.def)             Requested size: 433.62555pt x 252.94823pt.
+[4 <./cs1_1_files/figure-latex/unnamed-chunk-9-1.pdf> <./cs1_1_files/figure-lat
+ex/unnamed-chunk-10-1.pdf>]
 
 Package hyperref Warning: Difference (2) between bookmark levels is greater 
-(hyperref)                than one, level fixed on input line 186.
+(hyperref)                than one, level fixed on input line 208.
 
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
-88.
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 2
+10.
 (c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/tex/latex/lm/t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-) [4 <./cs1_1_files/figure-latex/unnamed-chunk-10-1.pdf> <./cs1_1_files/figure-
-latex/unnamed-chunk-11-1.pdf>] [5]
-<cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf, id=172, 433.62pt x 252.945pt>
+) [5 <./cs1_1_files/figure-latex/unnamed-chunk-11-1.pdf>]
+<cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf, id=175, 433.62pt x 252.945pt>
 
 File: cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf Graphic file (type pdf)
 <use cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf>
 Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf  used 
-on input line 262.
+on input line 284.
 (pdftex.def)             Requested size: 433.62555pt x 252.94823pt.
-[6 <./cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf>] [7] (./cs1_1.aux)
+[6] [7 <./cs1_1_files/figure-latex/unnamed-chunk-13-1.pdf>]
+<cs1_1_files/figure-latex/unnamed-chunk-18-1.pdf, id=194, 469.755pt x 325.215pt
+>
+File: cs1_1_files/figure-latex/unnamed-chunk-18-1.pdf Graphic file (type pdf)
+<use cs1_1_files/figure-latex/unnamed-chunk-18-1.pdf>
+Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-18-1.pdf  used 
+on input line 349.
+(pdftex.def)             Requested size: 469.75386pt x 325.2142pt.
+<cs1_1_files/figure-latex/unnamed-chunk-19-1.pdf, id=195, 722.7pt x 722.7pt>
+File: cs1_1_files/figure-latex/unnamed-chunk-19-1.pdf Graphic file (type pdf)
+<use cs1_1_files/figure-latex/unnamed-chunk-19-1.pdf>
+Package pdftex.def Info: cs1_1_files/figure-latex/unnamed-chunk-19-1.pdf  used 
+on input line 354.
+(pdftex.def)             Requested size: 469.76045pt x 469.76045pt.
+[8 <./cs1_1_files/figure-latex/unnamed-chunk-18-1.pdf>] [9 <./cs1_1_files/figur
+e-latex/unnamed-chunk-19-1.pdf>] (./cs1_1.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `cs1_1.out' has not changed.
-(rerunfilecheck)             Checksum: A96BA39309491B6C6D9A2A66CEA0F692;2211.
+(rerunfilecheck)             Checksum: 18BECE2445FCEE83827A374838E717F4;2356.
  ) 
 Here is how much of TeX's memory you used:
- 11713 strings out of 480559
- 174365 string characters out of 5901780
- 487596 words of memory out of 5000000
- 29058 multiletter control sequences out of 15000+600000
+ 11733 strings out of 480559
+ 175155 string characters out of 5901780
+ 482635 words of memory out of 5000000
+ 29072 multiletter control sequences out of 15000+600000
  449140 words of font info for 67 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 60i,9n,66p,243b,470s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,9n,66p,243b,467s stack positions out of 5000i,500n,10000p,200000b,80000s
 {c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.e
 nc}<c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmb
 x10.pfb><c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/l
@@ -782,10 +797,10 @@ lic/lm/lmr10.pfb><c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1
 /public/lm/lmr12.pfb><c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/fonts/t
 ype1/public/lm/lmr17.pfb><c:/Users/jwmcc/AppData/Roaming/TinyTeX/texmf-dist/fon
 ts/type1/public/lm/lmtt10.pfb>
-Output written on cs1_1.pdf (7 pages, 253828 bytes).
+Output written on cs1_1.pdf (9 pages, 538187 bytes).
 PDF statistics:
- 233 PDF objects out of 1000 (max. 8388607)
- 192 compressed objects within 2 object streams
- 44 named destinations out of 1000 (max. 500000)
- 174 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 262 PDF objects out of 1000 (max. 8388607)
+ 214 compressed objects within 3 object streams
+ 48 named destinations out of 1000 (max. 500000)
+ 192 words of extra memory for PDF output out of 10000 (max. 10000000)
 

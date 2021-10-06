@@ -370,6 +370,98 @@ c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
 plot(model1)
 ```
 
+## Model diagnostics
+
+```{r, fig.height=10, fig.width=10}
+plot_qq <- function(model) {
+  df <- data.frame(
+    res=residuals(model, scaled=TRUE)
+  )
+  
+  p <- ggplot(df, aes(sample=res)) + 
+    stat_qq() + 
+    stat_qq_line(
+      linetype='dashed',
+      color='red',
+      size=1
+    ) +
+    labs(
+      title='Normal QQ',
+      x='Theoretical Quantiles',
+      y='Standardized Residuals'
+    )
+  
+  return(p)
+}
+
+plot_res_fit <- function(model) {
+  df <- data.frame(
+    res=residuals(model),
+    fit=fitted(model)
+  )
+  
+  p <- ggplot(df, aes(x=fit, y=res)) +
+    geom_point() +
+    geom_hline(
+      yintercept=0,
+      linetype="dashed"
+    ) +
+    geom_smooth() +
+    labs(
+      title='Residuals vs. Fitted',
+      x='Fitted',
+      y='Residuals'
+    )
+  
+  return(p)
+}
+
+plot_scale_loc <- function(model) {
+  df <- data.frame(
+    res=sqrt(residuals(model, scaled=TRUE)),
+    fit=fitted(model)
+  )
+  
+  p <- ggplot(df, aes(x=fit, y=res)) +
+    geom_point() +
+    geom_smooth() +
+    labs(
+      title='Scale-Location',
+      x='Fitted',
+      y=expression(sqrt('Standardized Residuals'))
+    )
+  
+  return(p)
+}
+
+plot_res_dens <- function(model) {
+  df <- data.frame(
+    res=residuals(model)
+  )
+  
+  p <- ggplot(df, aes(x=res)) +
+    geom_density() +
+    labs(
+      title='Residuals Density',
+      x='Residuals',
+      y='Density'
+    )
+  
+  return(p)
+}
+  
+model_diag <- function(model) {
+  p1 <- plot_res_fit(model)
+  p2 <- plot_qq(model)
+  p3 <- plot_scale_loc(model)
+  p4 <- plot_res_dens(model)
+  
+  cowplot::plot_grid(p1, p2, p3, p4, nrow=2)
+}
+
+model_diag(model3)
+```
+
 
 
 
