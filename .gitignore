@@ -1,2 +1,5 @@
 *.Rproj
 *.user
+*.log
+*cache/
+*file/
