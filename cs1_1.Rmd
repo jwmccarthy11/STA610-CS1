@@ -320,7 +320,6 @@ Choose `State` as our grouping variable
 
 ```{r}
 # Test date_num
-
 mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
 
@@ -367,14 +366,13 @@ mod_final <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date  + mgstr +
 ```
 
 
-
 ```{r error=FALSE, fig.align='center', fig.height=, message=FALSE, warning=FALSE, fig.height=2}
-# resqq <- plot_resqq(mod_final)
-# ranefci <- plot_ranef(mod_final)
-# grid.arrange(resqq, ranefci, ncol = 2)
+resqq <- plot_resqq(mod_final)
+ranefci <- plot_ranef(mod_final)
+grid.arrange(resqq, ranefci, ncol = 2)
 ```
 
-
+**Interaction needed**
 
 
 # Influence
