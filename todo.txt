@@ -1,6 +1,6 @@
 introduction
 
-remove observations from smallest sample size states
+remove observations from smallest sample size states (done)
 
 remove outliers prior to model analysis(?)
 
