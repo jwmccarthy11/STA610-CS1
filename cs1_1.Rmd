@@ -327,6 +327,24 @@ morph_data %>%
 
 # Model
 
+```{r}
+modela <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + source + (1|state), data = morph_data)
+modelb <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + (1|state), data = morph_data)
+modelc <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + (1|state), data = morph_data)
+modeld <- lmer(log(ppm) ~ date_diff + quarter + mgstr + (1|state), data = morph_data)
+modele <- lmer(log(ppm) ~ date_diff + quarter + (1|state), data = morph_data)
+modelf <- lmer(log(ppm) ~ date_diff + (1|state), data = morph_data)
+
+#m <- ols_step_best_subset(model)
+#plot(m)
+#selectedMod <- step(model)
+#summary(selectedMod)
+
+BIC_score <- sapply(c(modela, modelb, modelc, modeld, modele, modelf), BIC)
+re_results <- data.frame('Grouping' = c('All', '- Source', '- Reason', '- Bulk', '- mgstr', '- quarter'), 'BIC' = BIC_score)
+kable(re_results)
+```
+From this it looks like the best model includes date_diff, quarter, and mgstr 
 
 ### choose grouping variable
 
