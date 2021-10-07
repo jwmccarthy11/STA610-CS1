@@ -157,3 +157,11 @@ p4 <- morph_state %>%
 
 cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
 ```
+
+# Model Selection
+
+# Model
+
+# Model Diagnosics
+
+# Future Directions
