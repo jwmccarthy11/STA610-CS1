@@ -122,4 +122,38 @@ morph_data <- morph_data %>%
   filter(state != "Alaska")
 ```
 
+# EDA 
 
+```{r, fig.width=10, fig.height=3, echo = FALSE}
+morph_state <- morph_trunc %>%
+  filter(state %in% state.name) %>%
+  mutate(state_abv=state.abb[match(state,state.name)])
+
+grand_mean <- mean(morph_state$ppm)
+
+p3 <- morph_state %>%
+  group_by(state_abv) %>%
+  summarise(n = n(), mean = mean(ppm)) %>%
+  ggplot(aes(x=n, y=mean)) +
+    geom_hline(
+      aes(yintercept=grand_mean),
+      linetype='dashed',
+      color='red',
+      size=0.75
+    ) +
+    geom_point() +
+    labs(x='sample size', y='mean log(ppm)') +
+    theme_bw()
+
+p4 <- morph_state %>%
+  ggplot(aes(y=log(ppm), x=state_abv)) +
+    geom_boxplot(
+      fill=rainbow(49),
+      alpha=0.5    
+    ) +
+    scale_x_discrete(guide=guide_axis(angle = 90)) +
+    theme_bw() +
+    labs(x='state')
+
+cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
+```
