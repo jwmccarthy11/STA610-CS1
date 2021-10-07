@@ -31,7 +31,7 @@ library(lmerTest)
 
 
 # devtools::install_github("goodekat/redres")
-library(redres)
+#library(redres)
 
 
 ```
@@ -397,6 +397,16 @@ anova(mod_1,mod_drop_source)$`Pr(>Chisq)`[2]
 
 We now have `quarter`, `bulk_purchase`, `primary_reason` and `mgstr` in our model, regarding `state` as the grouping variable.
 
+Why/how did we choose the variables to put into the model? too many predictors?
+
+Unique values: 
+state = 45
+quarter = 4
+bulk purchase = 2
+primary reason = 10
+mgstr = 14
+
+only have 1831 observations
 
 # ```{r}
 # full_model <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + as.factor(quarter) + mgstr +
