@@ -27,9 +27,11 @@ library(rstan)
 library(tidybayes)
 library(naniar)
 library(olsrr)
+library(lmerTest)
+
 
 # devtools::install_github("goodekat/redres")
-#library(redres)
+library(redres)
 
 
 ```
@@ -38,14 +40,14 @@ library(olsrr)
 load('streetrx.RData')
 ```
 
-Qinzhe - Checker: Double-checks the work for reproducibility and errors. Also responsible for submitting the report and presentation files.
+Qinzhe - Coordinator & Checker: Double-checks the work for reproducibility and errors. Also responsible for submitting the report and presentation files.
          Coordinator: Keeps everyone on task and makes sure everyone is involved. Also responsible for coordinating team meetings and defining the objectives for each meeting.
 
 Emily - Presenter: Primarily responsible for organizing and putting the team presentations together.
 
 Jack - Programmer: Primarily responsible for all things coding. The programmer is responsible for putting everyone’s code together and making sure the final product is “readable”.
 
-Wiyi - Writer: Primarily responsible for putting together the final report.
+Weiyi - Writer: Primarily responsible for putting together the final report.
 
 # Introduction
 
@@ -148,13 +150,13 @@ state_size <- morph_data %>%
 
 # dim(state_size)[2]
 small_sample <- state_size %>% 
-  dplyr::select(1:5) %>%
+  dplyr::select(1:7) %>%
   kable(caption = "7 states with smallest sample size ",
         align = "c", booktabs = TRUE) %>%
   kable_styling(latex_options = c("hold_position"))
 
 large_sample <- state_size %>% 
-  dplyr::select(46:50) %>%
+  dplyr::select(44:50) %>%
   kable(caption = "7 states with largest sample size ",
         align = "c", booktabs = TRUE) %>%
   kable_styling(latex_options = c("hold_position"))
@@ -261,6 +263,30 @@ morph_data %>%
   geom_boxplot()
 ```
 
+### date
+
+record `price_date` as a continuous variable counting days from some start date.
+
+```{r}
+morph_data %>% mutate(date_diff1 = as.numeric(as.Date(morph_data$price_date, "%m/%d/%y")-as.Date("2013-01-01")))
+```
+
+```{r}
+#min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
+morph_data <- 
+  morph_data %>% 
+  mutate(date_diff = as.numeric(as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2013-01-01")))
+```
+
+```{r}
+date_hist <- morph_data %>%
+  ggplot(aes(x = date_diff)) +
+  geom_histogram()
+date_hist
+```
+
+
+
 ### year & quarter vs.log(ppm)
 
 
@@ -305,11 +331,11 @@ morph_data %>%
 ### choose grouping variable
 
 ```{r}
-mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr +
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
-mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + price_date + quarter + mgstr +
+mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
-mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + price_date + quarter + mgstr +
+mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
 
 
@@ -318,6 +344,18 @@ re_results <- data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = BIC_
 kable(re_results)
 
 
+```
+
+
+```{r}
+## maybe consider only incorporate grouping variable at this time? But the results are the same
+mod_11 <- lmer(data=morph_data, log(ppm) ~ (1 |state), REML=F)
+mod_12 <- lmer(data=morph_data, log(ppm) ~ (1 |city), REML=F)
+mod_13 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region), REML=F)
+
+BIC_score1 <- sapply(c(mod_11, mod_12, mod_13), BIC)
+re_results1 <- data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = BIC_score1)
+kable(re_results1)
 ```
 
 Choose `State` as our grouping variable
@@ -332,43 +370,78 @@ mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr 
                 bulk_purchase + primary_reason + source, REML=F)
 
 
-mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date  + mgstr +
+mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff  + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
 
-mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr 
+mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr 
                                + primary_reason + source, REML=F)
 
-mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr +
+mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
                 bulk_purchase+ source, REML=F)
 
-mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter  +
+mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter  +
                 bulk_purchase + primary_reason + source, REML=F)
 
 
-mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date + quarter + mgstr +
+mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason, REML=F)
 
 
-anova(mod_1,mod_drop_date)$`Pr(>Chisq)`[2] # add
-anova(mod_1,mod_drop_quater)$`Pr(>Chisq)`[2]
+anova(mod_1,mod_drop_date)$`Pr(>Chisq)`[2] 
+anova(mod_1,mod_drop_quater)$`Pr(>Chisq)`[2] # add
 anova(mod_1,mod_drop_bulk_purchase)$`Pr(>Chisq)`[2] # add
 anova(mod_1,mod_drop_primary_reason)$`Pr(>Chisq)`[2] # add
 anova(mod_1,mod_drop_mgstr)$`Pr(>Chisq)`[2] # add
 anova(mod_1,mod_drop_source)$`Pr(>Chisq)`[2] 
 ```
 
-We now have `price_date`, `bulk_purchase`, `primary_reason` and `mgstr` in our model, regarding `state` as the grouping variable.
+We now have `quarter`, `bulk_purchase`, `primary_reason` and `mgstr` in our model, regarding `state` as the grouping variable.
+
+
+# ```{r}
+# full_model <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + as.factor(quarter) + mgstr +
+#                      bulk_purchase + as.factor(primary_reason) + as.factor(source), REML=F)
+# ```
+# 
+# ```{r}
+# # backward elimination
+# step_res <- step(full_model)
+# final <- get_model(step_res)
+# ```
+# 
+# ```{r}
+# step_res
+# ```
+
+# ```{r}
+# anova(final)
+# ```
 
 
 ### Interaction
 
 
-### final model
-
-**log(ppm) ~  bulk_purchase + price_date + primary_reason + mgstr + (1 | state)**
 
 ```{r}
-mod_final <- lmer(data=morph_data, log(ppm) ~ (1 |state) + price_date  + mgstr +
+#names(morph_data)
+
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  date_diff + quarter + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
+
+
+```
+
+
+
+
+
+
+### final model
+
+**log(ppm) ~  bulk_purchase + quarter + primary_reason + mgstr + (1 | state)**
+
+```{r}
+mod_final <- lmer(data=morph_data, log(ppm) ~ (1 |state)   + quarter  + mgstr +
                 bulk_purchase + primary_reason, REML=F)
 
 ```
