@@ -155,7 +155,8 @@ p3 <- morph_state %>%
     ) +
     geom_point() +
     labs(x='sample size', y='mean log(ppm)') +
-    theme_bw()
+    theme_bw() +
+  labs(x = "Sample Size", y = "Mean log(ppm)")
 
 p4 <- morph_state %>%
   ggplot(aes(y=log(ppm), x=state_abv)) +
@@ -165,7 +166,8 @@ p4 <- morph_state %>%
     ) +
     scale_x_discrete(guide=guide_axis(angle = 90)) +
     theme_bw() +
-    labs(x='state')
+    labs(x='state') +
+  labs(x = "State", y = "log(ppm)")
 
 jpeg("EDAplot2.jpg", width = 700, height = 400)
 
