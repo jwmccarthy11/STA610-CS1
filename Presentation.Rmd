@@ -3,6 +3,7 @@ title: "Case Study 1 - Morphine"
 author: "Emily Gentles, Weiyi Liu, Jack McCarthy, Qinzhe Wang"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: beamer_presentation
+    theme: cyborg
 ---
 
 
@@ -92,7 +93,11 @@ p2 <- morph_trunc %>%
     xlim(-7, 3) +
     theme_bw()
 
+jpeg("EDAplot1.jpg", width = 600)
+
 grid.arrange(p1, p2, ncol=2)
+
+dev.off()
 ```
 
 
@@ -129,6 +134,13 @@ morph_state <- morph_trunc %>%
   filter(state %in% state.name) %>%
   mutate(state_abv=state.abb[match(state,state.name)])
 
+morph_state <- morph_state %>%
+  filter(state != "North Dakota") %>%
+  filter(state != "Washington, DC") %>%
+  filter( state != "Vermont") %>%
+  filter(state != "Wyoming") %>%
+  filter(state != "Alaska")
+
 grand_mean <- mean(morph_state$ppm)
 
 p3 <- morph_state %>%
@@ -148,14 +160,18 @@ p3 <- morph_state %>%
 p4 <- morph_state %>%
   ggplot(aes(y=log(ppm), x=state_abv)) +
     geom_boxplot(
-      fill=rainbow(49),
+      fill=rainbow(45),
       alpha=0.5    
     ) +
     scale_x_discrete(guide=guide_axis(angle = 90)) +
     theme_bw() +
     labs(x='state')
 
+jpeg("EDAplot2.jpg", width = 700, height = 400)
+
 cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
+
+dev.off()
 ```
 
 # Model Selection
@@ -164,4 +180,4 @@ cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
 
 # Model Diagnosics
 
-# Future Directions
+# Findings
