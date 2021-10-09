@@ -28,10 +28,11 @@ library(tidybayes)
 library(naniar)
 library(olsrr)
 library(lmerTest)
+require(lattice)
 
 
 # devtools::install_github("goodekat/redres")
-library(redres)
+#library(redres)
 
 
 ```
@@ -173,6 +174,7 @@ morph_data <- morph_data %>%
   filter( state != "Vermont") %>%
   filter(state != "Wyoming") %>%
   filter(state != "Alaska")
+
 ```
 
 
@@ -324,12 +326,15 @@ morph_data %>%
 
 
 ```{r, fig.width=6, fig.height=3.5}
+jpeg("EDAplotReason.jpg", width = 500)
+
 morph_data %>%
   ggplot(aes(x = primary_reason,y =log(ppm))) +
   geom_boxplot() +
-  coord_flip()
+  coord_flip() +
+  labs(x = "log(ppm)", y = "Reason")
 
-
+dev.off()
 ```
 
 
@@ -345,9 +350,19 @@ quantile(morph_data$mgstr)
 ## here we decide to re-code mgstr by quantile
 morph_data <- morph_data %>%
   mutate(mgstr2 = case_when(mgstr <= 15 ~ "low",
-                              mgstr >15 & mgstr <= 30  ~ "medium1",
-                              mgstr >30 & mgstr <= 50  ~ "medium2",
+                              mgstr >15 & mgstr <= 30  ~ "medium",
+                              mgstr >30 & mgstr <= 50  ~ "medium high",
                               mgstr >=50 ~ "high"))
+
+jpeg("EDAplotStrength.jpg", width = 500, height = 300)
+
+morph_data %>%
+  ggplot(aes(x = mgstr2,y =log(ppm))) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "log(ppm)", y = "Strength")
+
+dev.off()
 ```
 
 
@@ -390,7 +405,7 @@ quantile(mgstr)
 morph_data <- morph_data %>%
   mutate(mgstr2 = case_when(mgstr >= 10 & mgstr < 15 ~ "low",
                               mgstr >= 15 & mgstr < 30 ~ "medium",
-                              mgstr >= 30 & mgstr < 50 ~ "medium2",
+                              mgstr >= 30 & mgstr < 50 ~ "medium high",
                               mgstr >= 50  ~ "high"))
 
 
@@ -409,8 +424,12 @@ mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter 
 
 BIC_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
 re_results <- data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = BIC_score)
+
+jpeg("BICgroup.jpg", width = 350)
+
 kable(re_results)
 
+dev.off()
 
 ```
 
@@ -432,7 +451,7 @@ mod_6 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr2, REML=F)
 
 sapply(c(mod_1, mod_4,mod_5,mod_6), BIC)
 
-
+step(mod_4)
 ```
 
 
@@ -496,6 +515,12 @@ BIC(mod_final1)
 BIC(mod_final2)
 ```
 
+```{r}
+tab_model(mod_final2)
+
+webshot::webshot("summary.html", "summary.png")
+```
+
 
 ```{r error=FALSE, fig.align='center', fig.height=, message=FALSE, warning=FALSE, fig.height=2}
 resqq <- plot_resqq(mod_final2)
@@ -537,7 +562,11 @@ cutline <- 4/length(unique(morph_data2$state))
 
 infindiv <- cooks_distance > 4/length(unique(morph_data2$state))
 
+jpeg("CooksDistance.jpg", width = 600)
+
 plot(cooks_distance) + abline(h = cutline, col = "red")
+
+dev.off()
 
 subset(data.frame(rownames(mod_final3_inf$`fixed.effects[-state]`),cooks_distance,infindiv),infindiv == TRUE)
 
@@ -558,6 +587,15 @@ mod_final4 <- lmer(data=morph_data3, log(ppm) ~ (1 |state)  + mgstr2 +
 resqq <- plot_resqq(mod_final4)
 ranefci <- plot_ranef(mod_final4)
 grid.arrange(resqq, ranefci, ncol = 2)
+```
+
+```{r}
+
+jpeg("randomef.png", width = 350)
+
+dotplot(ranef(mod_final2, condVar = TRUE))
+
+dev.off()
 ```
 
 
