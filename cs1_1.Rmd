@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message = FALSE, cache = TRUE)
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message = FALSE, cache = TRUE)
 library(tidyverse)
 library(janitor)
 library(gridExtra)
@@ -350,6 +350,10 @@ morph_data <- morph_data %>%
                               mgstr >=50 ~ "high"))
 ```
 
+
+
+
+
 # Model
 
 ```{r}
@@ -371,7 +375,28 @@ kable(re_results)
 ```
 From this it looks like the best model includes date_diff, quarter, and mgstr 
 
+
+
 ### choose grouping variable
+
+```{r}
+
+morph_data <- morph_data %>% 
+  filter(year != "2013" & year != "2014")
+
+attach(morph_data)
+quantile(mgstr)
+
+morph_data <- morph_data %>%
+  mutate(mgstr2 = case_when(mgstr >= 10 & mgstr < 15 ~ "low",
+                              mgstr >= 15 & mgstr < 30 ~ "medium",
+                              mgstr >= 30 & mgstr < 50 ~ "medium2",
+                              mgstr >= 50  ~ "high"))
+
+
+
+```
+
 
 ```{r}
 mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
@@ -389,56 +414,62 @@ kable(re_results)
 
 ```
 
-
-```{r}
-## maybe consider only incorporate grouping variable at this time? But the results are the same
-mod_11 <- lmer(data=morph_data, log(ppm) ~ (1 |state), REML=F)
-mod_12 <- lmer(data=morph_data, log(ppm) ~ (1 |city), REML=F)
-mod_13 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region), REML=F)
-
-BIC_score1 <- sapply(c(mod_11, mod_12, mod_13), BIC)
-re_results1 <- data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = BIC_score1)
-kable(re_results1)
-```
-
 Choose `State` as our grouping variable
 
 
+```{r}
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
+                bulk_purchase + primary_reason + source, REML=F)
+
+mod_4 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
+
+
+mod_5 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr, REML=F)
+
+mod_6 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr2, REML=F)
+
+
+sapply(c(mod_1, mod_4,mod_5,mod_6), BIC)
+
+
+```
 
 
 
 ```{r}
 # Test date_num
-mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr +
+mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 
-mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff  + mgstr +
+mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff  + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
-mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr 
+mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 
                                + primary_reason + source, REML=F)
 
-mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
+mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
                 bulk_purchase+ source, REML=F)
 
 mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter  +
                 bulk_purchase + primary_reason + source, REML=F)
 
 
-mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
+mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
                 bulk_purchase + primary_reason, REML=F)
 
 
-anova(mod_1,mod_drop_date)$`Pr(>Chisq)`[2] 
-anova(mod_1,mod_drop_quater)$`Pr(>Chisq)`[2] # add
-anova(mod_1,mod_drop_bulk_purchase)$`Pr(>Chisq)`[2] # add
-anova(mod_1,mod_drop_primary_reason)$`Pr(>Chisq)`[2] # add
-anova(mod_1,mod_drop_mgstr)$`Pr(>Chisq)`[2] # add
-anova(mod_1,mod_drop_source)$`Pr(>Chisq)`[2] 
+anova(mod_4,mod_drop_date)$`Pr(>Chisq)`[2] 
+anova(mod_4,mod_drop_quater)$`Pr(>Chisq)`[2] # add
+anova(mod_4,mod_drop_bulk_purchase)$`Pr(>Chisq)`[2] # add
+anova(mod_4,mod_drop_primary_reason)$`Pr(>Chisq)`[2] # add
+anova(mod_4,mod_drop_mgstr)$`Pr(>Chisq)`[2] # add
+anova(mod_4,mod_drop_source)$`Pr(>Chisq)`[2] 
 ```
 
-We now have `quarter`, `bulk_purchase`, `primary_reason` and `mgstr` in our model, regarding `state` as the grouping variable.
+
+We now have `quarter`, `bulk_purchase`, `primary_reason` and `mgstr2` in our model, regarding `state` as the grouping variable.
 
 Why/how did we choose the variables to put into the model? too many predictors?
 
@@ -451,105 +482,95 @@ mgstr = 14
 
 only have 1831 observations
 
-# ```{r}
-# full_model <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + as.factor(quarter) + mgstr +
-#                      bulk_purchase + as.factor(primary_reason) + as.factor(source), REML=F)
-# ```
-# 
-# ```{r}
-# # backward elimination
-# step_res <- step(full_model)
-# final <- get_model(step_res)
-# ```
-# 
-# ```{r}
-# step_res
-# ```
-
-# ```{r}
-# anova(final)
-# ```
-
-
-### Interaction
-
-
-
-```{r}
-#names(morph_data)
-
-mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  date_diff + quarter + mgstr +
-                bulk_purchase + primary_reason + source, REML=F)
-
-
-```
-
-
-
-
-
-
 ### final model
 
-**log(ppm) ~  bulk_purchase + quarter + primary_reason + mgstr + (1 | state)**
 
-```{r}
-mod_final <- lmer(data=morph_data, log(ppm) ~ (1 |state)   + quarter  + mgstr +
+```{r, eval =T}
+mod_final1 <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr + quarter +
                 bulk_purchase + primary_reason, REML=F)
 
+mod_final2<- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr2 + quarter +
+                bulk_purchase + primary_reason, REML=F)
+
+BIC(mod_final1)
+BIC(mod_final2)
 ```
 
 
 ```{r error=FALSE, fig.align='center', fig.height=, message=FALSE, warning=FALSE, fig.height=2}
-resqq <- plot_resqq(mod_final)
-ranefci <- plot_ranef(mod_final)
+resqq <- plot_resqq(mod_final2)
+ranefci <- plot_ranef(mod_final2)
 grid.arrange(resqq, ranefci, ncol = 2)
 ```
 
-**Interaction needed**
+
+
+Remove the data point with the lowest residual.
+
+```{r}
+morph_data2 <- morph_data[-which.min(resid(mod_final2)),]
+
+mod_final3 <- lmer(data=morph_data2, log(ppm) ~ (1 |state)  + mgstr2 + 
+                     bulk_purchase + quarter + 
+                primary_reason , REML=F)
+
+
+resqq <- plot_resqq(mod_final3)
+ranefci <- plot_ranef(mod_final3)
+grid.arrange(resqq, ranefci, ncol = 2)
+
+```
 
 
 # Influence
 
 ```{r}
-# model3_inf<- influence(model3, obs = TRUE)
-# cooks_distance <- cooks.distance(model3_inf)
-# infindiv <- cooks_distance>4/nrow(morph_data)
+mod_final3_inf<- influence(mod_final3, group = "state")
+```
+
+```{r}
+cooks_distance <- cooks.distance(mod_final3_inf)
+
+
+cutline <- 4/length(unique(morph_data2$state))
+
+
+infindiv <- cooks_distance > 4/length(unique(morph_data2$state))
+
+plot(cooks_distance) + abline(h = cutline, col = "red")
+
+subset(data.frame(rownames(mod_final3_inf$`fixed.effects[-state]`),cooks_distance,infindiv),infindiv == TRUE)
+
 ```
 
 
-## Heterogeneity across states
+```{r}
+morph_data3  <- morph_data2 %>%
+  filter(state != "California") %>%
+  filter(state != "Arizona") 
 
 
-## I removed the orginal model1, instead, we have finall model now (no interaction version)
-## so the the chunck below, I changed the model to be tested to the final model.
+mod_final4 <- lmer(data=morph_data3, log(ppm) ~ (1 |state)  + mgstr2 + 
+                     bulk_purchase + quarter + 
+                primary_reason , REML=F)
+
+
+resqq <- plot_resqq(mod_final4)
+ranefci <- plot_ranef(mod_final4)
+grid.arrange(resqq, ranefci, ncol = 2)
+```
+
+
+Plots are not good -> not remove those two states?
+
+
+
+
 
 Interclass correlation is 0.0159, very small so very little correlation across states.
 Including bulk purchases, the interclass correlation is 0.016, so bulk purchase actually increases the heterogeneity across states by a very small amount.
 
 Make table with results for all models tested in ANOVA
-
-```{r}
-model1 <- mod_final
-
-
-# sigma2hat <- sigma(model1)*sigma(model1)
-# tau2hat <- as.numeric(VarCorr(model1)$state)
-# c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
-# 
-# sigma2hat <- sigma(model3)*sigma(model3)
-# tau2hat <- as.numeric(VarCorr(model3)$state)
-# c(sigma2hat, tau2hat, tau2hat/(tau2hat+sigma2hat))
-
-plot(model1)
-```
-
-
-
-
-
-
-
 
 
 
