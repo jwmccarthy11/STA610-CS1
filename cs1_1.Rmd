@@ -31,7 +31,7 @@ library(lmerTest)
 
 
 # devtools::install_github("goodekat/redres")
-#library(redres)
+library(redres)
 
 
 ```
@@ -257,19 +257,25 @@ source_index <- morph_data$source %in% c("Personal",
 morph_data$source[!source_index] <- "Internet"
 
 morph_data <- droplevels(morph_data)
+```
 
-morph_data %>%
+```{r, fig.height=3, fig.width=10}
+t2 <- morph_data %>%
+  group_by(source) %>%
+  summarise(n=n(), mean=round(mean(log(ppm)), 3)) %>%
+  tableGrob()
+
+p6 <- morph_data %>%
   ggplot(aes(x = source,y = log(ppm))) +
   geom_boxplot()
+
+grid.arrange(t2, p6, ncol=2, widths=c(2, 2))
 ```
+
 
 ### date
 
 record `price_date` as a continuous variable counting days from some start date.
-
-```{r}
-morph_data %>% mutate(date_diff1 = as.numeric(as.Date(morph_data$price_date, "%m/%d/%y")-as.Date("2013-01-01")))
-```
 
 ```{r}
 #min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
@@ -289,17 +295,20 @@ date_hist
 
 ### year & quarter vs.log(ppm)
 
-
 ```{r,fig.width=10, fig.height=3.5}
+t_year <- morph_data %>% group_by(year) %>% summarize(n = n()) %>% tableGrob()
+
 yearplot <- morph_data %>%
   ggplot(aes(x = year,y = log(ppm))) +
   geom_boxplot()
+
+t_quarter <- morph_data %>% group_by(quarter) %>% summarize(n = n()) %>% tableGrob()
 
 quarterplot <- morph_data %>%
   ggplot(aes(x = quarter,y = log(ppm))) +
   geom_boxplot()
 
-grid.arrange(yearplot, quarterplot, ncol=2)
+grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
 ```
 
 ### bulk_purchase vs.log(ppm)
@@ -308,7 +317,6 @@ grid.arrange(yearplot, quarterplot, ncol=2)
 morph_data %>%
   ggplot(aes(x = bulk_purchase,y = log(ppm))) +
   geom_boxplot()
-
 ```
 
 
@@ -324,6 +332,23 @@ morph_data %>%
 
 ```
 
+
+### mgstr vs. log(ppm)
+
+```{r}
+plot(morph_data$mgstr, log(morph_data$ppm))
+hist(morph_data$mgstr)
+
+morph_data %>% group_by(mgstr) %>% summarize(n = n())
+quantile(morph_data$mgstr)
+
+## here we decide to re-code mgstr by quantile
+morph_data <- morph_data %>%
+  mutate(mgstr2 = case_when(mgstr <= 15 ~ "low",
+                              mgstr >15 & mgstr <= 30  ~ "medium1",
+                              mgstr >30 & mgstr <= 50  ~ "medium2",
+                              mgstr >=50 ~ "high"))
+```
 
 # Model
 
