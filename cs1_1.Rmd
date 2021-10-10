@@ -269,7 +269,7 @@ t2 <- morph_data %>%
 
 p6 <- morph_data %>%
   ggplot(aes(x = source,y = log(ppm))) +
-  geom_boxplot()
+  geom_boxplot() 
 
 grid.arrange(t2, p6, ncol=2, widths=c(2, 2))
 ```
@@ -308,17 +308,41 @@ t_quarter <- morph_data %>% group_by(quarter) %>% summarize(n = n()) %>% tableGr
 
 quarterplot <- morph_data %>%
   ggplot(aes(x = quarter,y = log(ppm))) +
-  geom_boxplot()
+  geom_boxplot() +
+  labs(x = "Quarter")  +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    )
 
 grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
+
+jpeg("EDAplotQuarter.jpg", width = 500)
+
+quarterplot
+
+dev.off()
 ```
 
 ### bulk_purchase vs.log(ppm)
 
 ```{r, fig.width=6, fig.height=3.5}
+jpeg("EDAplotBulk.jpg", width = 500)
+
 morph_data %>%
   ggplot(aes(x = bulk_purchase,y = log(ppm))) +
-  geom_boxplot()
+  geom_boxplot() +
+  labs(x = "Bulk Purchase") +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    )
+
+dev.off()
 ```
 
 
@@ -332,7 +356,13 @@ morph_data %>%
   ggplot(aes(x = primary_reason,y =log(ppm))) +
   geom_boxplot() +
   coord_flip() +
-  labs(x = "log(ppm)", y = "Reason")
+  labs(x = "log(ppm)", y = "Reason")  +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    )
 
 dev.off()
 ```
@@ -360,7 +390,13 @@ morph_data %>%
   ggplot(aes(x = mgstr2,y =log(ppm))) +
   geom_boxplot() +
   coord_flip() +
-  labs(x = "log(ppm)", y = "Strength")
+  labs(x = "log(ppm)", y = "Strength")  +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    )
 
 dev.off()
 ```
