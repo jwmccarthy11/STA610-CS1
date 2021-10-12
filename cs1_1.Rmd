@@ -2,11 +2,13 @@
 title: "STA610 Case Study 1"
 author: "Emily Gentles, Weiyi Liu, Jack McCarthy, Qinzhe Wang"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output: pdf_document
+output: 
+  pdf_document:
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message = FALSE, cache = TRUE)
+knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message = FALSE, cache = TRUE)
 library(tidyverse)
 library(janitor)
 library(gridExtra)
@@ -32,7 +34,7 @@ require(lattice)
 
 
 # devtools::install_github("goodekat/redres")
-#library(redres)
+library(redres)
 
 
 ```
@@ -59,35 +61,27 @@ Weiyi - Writer: Primarily responsible for putting together the final report.
 ### Missing Values
 
 ```{r, fig.width=6, fig.height=3.5}
-morph_data_na_checking <- streetrx[streetrx$api_temp == "morphine",]
-
-morph_data_na_checking[morph_data_na_checking == ""] <- NA
-
-morph_data_na_checking <- droplevels(morph_data_na_checking)
+na_check <- streetrx %>%
+  filter(api_temp == 'morphine') %>%
+  mutate_all( list( ~na_if(., '') ) ) %>%
+  droplevels()
   
-gg_miss_upset(morph_data_na_checking)
+gg_miss_upset(na_check)
 ```
 
 ```{r}
 # subset for group drug
-streetrx[streetrx == ""] <- NA
 morph_data <- streetrx %>%
+  mutate_all( list( ~na_if(., '') ) ) %>%
   drop_na() %>%
   clean_names() %>%
   filter(api_temp == 'morphine') %>%
   mutate(
     quarter=substring(yq_pdate, 5, 5),
-    year=substring(yq_pdate, 1, 4)
+    year=substring(yq_pdate, 1, 4),
+    state=recode_factor(droplevels(state), 'USA'='Unknown')
   )
 ```
-
-
-```{r}
-# replace state "USA" with "Unknown"
-morph_data$state <- recode_factor(droplevels(morph_data$state), "USA" = "Unknown")
-
-```
-
 
 ### Response Distribution
 
@@ -96,9 +90,11 @@ with ppm between the 0.1 and 99.9 percentiles were considered so as to avoid
 the influence of extreme outliers on the analysis of the ppm distribution.
 
 ```{r, fig.width=10, fig.height=3.5}
+# remove extreme outliers based on quantiles
 morph_trunc <- morph_data %>%
   filter(between(ppm, quantile(ppm, 0.001), quantile(ppm, 0.999)))
 
+# untransformed density
 p1 <- morph_trunc %>%
   ggplot(aes(x=ppm)) +
     geom_histogram(
@@ -114,6 +110,7 @@ p1 <- morph_trunc %>%
     labs(title='Distribution of morphine ppm') +
     theme_bw()
 
+# log-transformed density
 p2 <- morph_trunc %>%
   ggplot(aes(x=log(ppm))) +
     geom_histogram(
@@ -146,35 +143,36 @@ state_size <- morph_data %>%
   group_by(state) %>%
   summarise(n = n(), .groups = "drop")  %>%
   arrange(n) %>%
-  pivot_wider(names_from = state,
-            values_from = n)
+  pivot_wider(
+    names_from=state,
+    values_from=n
+  )
 
-# dim(state_size)[2]
-small_sample <- state_size %>% 
+state_size %>% 
   dplyr::select(1:7) %>%
-  kable(caption = "7 states with smallest sample size ",
-        align = "c", booktabs = TRUE) %>%
-  kable_styling(latex_options = c("hold_position"))
+  kable(
+    caption = '7 States with Smallest Sample Size',
+    align='c', 
+    booktabs=TRUE) %>%
+  kable_styling(latex_options = c('hold_position'))
 
-large_sample <- state_size %>% 
+state_size %>% 
   dplyr::select(44:50) %>%
-  kable(caption = "7 states with largest sample size ",
-        align = "c", booktabs = TRUE) %>%
-  kable_styling(latex_options = c("hold_position"))
+  kable(
+    caption='7 States with Largest Sample Size',
+    align='c', 
+    booktabs=TRUE
+  ) %>%
+  kable_styling(latex_options = c('hold_position'))
+```
 
-small_sample
-large_sample
-
-morph_data$state <- as.character(morph_data$state)
-
-# remove states that have small sample size
+```{r}
+# remove low sample size states
 morph_data <- morph_data %>%
-  filter(state != "North Dakota") %>%
-  filter(state != "Washington, DC") %>%
-  filter( state != "Vermont") %>%
-  filter(state != "Wyoming") %>%
-  filter(state != "Alaska")
-
+  mutate(state=as.character(state)) %>%
+  filter(!state %in% c(
+    'North Dakota', 'Washington, DC', 'Vermont', 'Wyoming', 'Alaska'
+  ))
 ```
 
 
@@ -250,28 +248,29 @@ grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 ```{r, fig.width=6, fig.height=3.5}
 # unique(morph_data$source)
 
-source_index <- morph_data$source %in% c("Personal",
-                                         "Heard it", 
-                                         "Internet", 
-                                         "Internet Pharmacy", 
-                                         "Drug forum", NA)
+# combine internet levels into single level
+morph_data <- morph_data %>%
+  mutate(source=replace(
+    source, !source %in% c(
+      'Personal',
+      'Heard it', 
+      'Internet', 
+      'Internet Pharmacy', 
+      'Drug forum', NA
+    ), 'Internet'
+  )) %>%
+  droplevels()
 
-morph_data$source[!source_index] <- "Internet"
-
-morph_data <- droplevels(morph_data)
-```
-
-```{r, fig.height=3, fig.width=10}
-t2 <- morph_data %>%
-  group_by(source) %>%
-  summarise(n=n(), mean=round(mean(log(ppm)), 3)) %>%
-  tableGrob()
-
-p6 <- morph_data %>%
+morph_data %>%
   ggplot(aes(x = source,y = log(ppm))) +
-  geom_boxplot() 
-
-grid.arrange(t2, p6, ncol=2, widths=c(2, 2))
+  geom_boxplot() +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
 ```
 
 
@@ -281,16 +280,28 @@ record `price_date` as a continuous variable counting days from some start date.
 
 ```{r}
 #min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
-morph_data <- 
-  morph_data %>% 
-  mutate(date_diff = as.numeric(as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2013-01-01")))
+
+morph_data <- morph_data %>% 
+  mutate(date_diff = as.numeric(
+    as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2013-01-01")
+  ))
 ```
 
 ```{r}
-date_hist <- morph_data %>%
-  ggplot(aes(x = date_diff)) +
-  geom_histogram()
-date_hist
+morph_data %>%
+  ggplot(aes(x=date_diff)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=30
+    ) +
+    geom_density(size=0.75, bw=100) +
+    labs(title='Date Distribution') +
+    theme_bw()
 ```
 
 
@@ -298,60 +309,74 @@ date_hist
 ### year & quarter vs.log(ppm)
 
 ```{r,fig.width=10, fig.height=3.5}
-t_year <- morph_data %>% group_by(year) %>% summarize(n = n()) %>% tableGrob()
+# t_year <- morph_data %>% 
+#   group_by(year) %>% 
+#   summarize(n = n()) %>% 
+#   tableGrob()
 
 yearplot <- morph_data %>%
   ggplot(aes(x = year,y = log(ppm))) +
-  geom_boxplot()
+  geom_boxplot() +
+  labs(x='Year') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
 
-t_quarter <- morph_data %>% group_by(quarter) %>% summarize(n = n()) %>% tableGrob()
+# t_quarter <- morph_data %>% 
+#   group_by(quarter) %>% 
+#   summarize(n = n()) %>% 
+#   tableGrob()
 
 quarterplot <- morph_data %>%
   ggplot(aes(x = quarter,y = log(ppm))) +
   geom_boxplot() +
-  labs(x = "Quarter")  +
-    stat_summary(
-      fun.y=mean, 
-      geom='point',
-      color='red',
-      size=3
-    )
+  labs(
+    x='Quarter',
+    y=''
+  )  +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
 
-grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
+# grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
+grid.arrange(yearplot, quarterplot, ncol=2)
 
-jpeg("EDAplotQuarter.jpg", width = 500)
-
-quarterplot
-
-dev.off()
+# jpeg("EDAplotQuarter.jpg", width = 500)
+# dev.off()
 ```
 
 ### bulk_purchase vs.log(ppm)
 
 ```{r, fig.width=6, fig.height=3.5}
-jpeg("EDAplotBulk.jpg", width = 500)
-
 morph_data %>%
   ggplot(aes(x = bulk_purchase,y = log(ppm))) +
   geom_boxplot() +
-  labs(x = "Bulk Purchase") +
-    stat_summary(
-      fun.y=mean, 
-      geom='point',
-      color='red',
-      size=3
-    )
+  labs(x='Bulk Purchase') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
 
-dev.off()
+# jpeg("EDAplotBulk.jpg", width = 500)
+# dev.off()
 ```
 
 
 ### Primary_Reason vs.log(ppm)
 
 
-```{r, fig.width=6, fig.height=3.5}
-jpeg("EDAplotReason.jpg", width = 500)
-
+```{r}
 morph_data %>%
   ggplot(aes(x = primary_reason,y =log(ppm))) +
   geom_boxplot() +
@@ -364,41 +389,87 @@ morph_data %>%
       size=3
     )
 
-dev.off()
+# jpeg("EDAplotReason.jpg", width = 500)
+# dev.off()
 ```
 
 
 ### mgstr vs. log(ppm)
 
 ```{r}
-plot(morph_data$mgstr, log(morph_data$ppm))
-hist(morph_data$mgstr)
+morph_data %>%
+  ggplot(aes(x=mgstr, y=log(ppm))) +
+    geom_point() +
+    geom_smooth() +
+    theme_bw()
 
-morph_data %>% group_by(mgstr) %>% summarize(n = n())
-quantile(morph_data$mgstr)
+morph_data %>%
+  ggplot(aes(x=log(mgstr), y=log(ppm))) +
+    geom_point() +
+    geom_smooth() +
+    theme_bw()
+
+morph_data %>%
+  ggplot(aes(x=mgstr)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=10
+    ) +
+    geom_density(size=0.75, bw=7.5) +
+    labs(title='Date Distribution') +
+    theme_bw()
+```
+
+```{r}
+morph_data %>% 
+  group_by(mgstr) %>% 
+  summarize(n = n()) %>%
+  pivot_wider(
+    names_from=mgstr,
+    values_from=n
+  ) %>%
+  kable(
+    caption='Sample Size for mgstr Levels',
+    align='c', 
+    booktabs=TRUE
+  ) %>%
+  kable_styling(latex_options = c('hold_position'))
+
+# inspect mgstr value quantiles
+quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
+  data.frame() %>%
+  rename('mgstr'='.') %>%
+  kable()
 
 ## here we decide to re-code mgstr by quantile
 morph_data <- morph_data %>%
-  mutate(mgstr2 = case_when(mgstr <= 15 ~ "low",
-                              mgstr >15 & mgstr <= 30  ~ "medium",
-                              mgstr >30 & mgstr <= 50  ~ "medium high",
-                              mgstr >=50 ~ "high"))
-
-jpeg("EDAplotStrength.jpg", width = 500, height = 300)
+  mutate(mgstr2 = case_when(
+    mgstr <= 15              ~ "low",
+    mgstr >15 & mgstr <= 30  ~ "medium",
+    mgstr >30 & mgstr <= 50  ~ "medium high",
+    mgstr >=50               ~ "high")
+  )
 
 morph_data %>%
-  ggplot(aes(x = mgstr2,y =log(ppm))) +
+  ggplot(aes(x=mgstr2 ,y=log(ppm))) +
   geom_boxplot() +
+  labs(y="log(ppm)", x="Strength")  +
   coord_flip() +
-  labs(x = "log(ppm)", y = "Strength")  +
-    stat_summary(
-      fun.y=mean, 
-      geom='point',
-      color='red',
-      size=3
-    )
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
 
-dev.off()
+# jpeg("EDAplotStrength.jpg", width = 500, height = 300)
+# dev.off()
 ```
 
 
@@ -408,20 +479,22 @@ dev.off()
 # Model
 
 ```{r}
-modela <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + source + (1|state), data = morph_data)
-modelb <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + (1|state), data = morph_data)
-modelc <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + (1|state), data = morph_data)
-modeld <- lmer(log(ppm) ~ date_diff + quarter + mgstr + (1|state), data = morph_data)
-modele <- lmer(log(ppm) ~ date_diff + quarter + (1|state), data = morph_data)
-modelf <- lmer(log(ppm) ~ date_diff + (1|state), data = morph_data)
+modela <- lmer(log(ppm) ~ date_diff + (1|state), data = morph_data)
+modelb <- lmer(log(ppm) ~ date_diff + quarter + (1|state), data = morph_data)
+modelc <- lmer(log(ppm) ~ date_diff + quarter + mgstr + (1|state), data = morph_data)
+modeld <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + (1|state), data = morph_data)
+modele <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + (1|state), data = morph_data)
+modelf <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + source + (1|state), data = morph_data)
 
 #m <- ols_step_best_subset(model)
 #plot(m)
 #selectedMod <- step(model)
 #summary(selectedMod)
 
-BIC_score <- sapply(c(modela, modelb, modelc, modeld, modele, modelf), BIC)
-re_results <- data.frame('Grouping' = c('All', '- Source', '- Reason', '- Bulk', '- mgstr', '- quarter'), 'BIC' = BIC_score)
+bic_score <- sapply(c(modela, modelb, modelc, modeld, modele, modelf), BIC)
+re_results <- data.frame('Grouping' = c(
+    'Basic', '\\+ Source', '\\+ Reason', '\\+ Bulk', '\\+ mgstr', '\\+ quarter'
+  ), 'BIC' = bic_score)
 kable(re_results)
 ```
 From this it looks like the best model includes date_diff, quarter, and mgstr 
@@ -430,64 +503,50 @@ From this it looks like the best model includes date_diff, quarter, and mgstr
 
 ### choose grouping variable
 
-```{r}
-
-morph_data <- morph_data %>% 
-  filter(year != "2013" & year != "2014")
-
-attach(morph_data)
-quantile(mgstr)
-
-morph_data <- morph_data %>%
-  mutate(mgstr2 = case_when(mgstr >= 10 & mgstr < 15 ~ "low",
-                              mgstr >= 15 & mgstr < 30 ~ "medium",
-                              mgstr >= 30 & mgstr < 50 ~ "medium high",
-                              mgstr >= 50  ~ "high"))
-
-
-
-```
-
 
 ```{r}
+
+# group by state
 mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
+
+# group by city
 mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
+
+# group by region
 mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
 
-
-BIC_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
-re_results <- data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = BIC_score)
-
-jpeg("BICgroup.jpg", width = 350)
-
-kable(re_results)
-
-dev.off()
-
+bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
+data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = bic_score) %>%
+  kable()
+ 
+# jpeg("BICgroup.jpg", width = 350)
+# dev.off()
 ```
 
 Choose `State` as our grouping variable
 
 
 ```{r}
-mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
+# raw mgstr values
+mod_4 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
                 bulk_purchase + primary_reason + source, REML=F)
 
-mod_4 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
+# new mgstr levels
+mod_5 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
+# basic model with raw mgstr
+mod_6 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr, REML=F)
 
-mod_5 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr, REML=F)
+# basic model with new mgstr levels
+mod_7 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr2, REML=F)
 
-mod_6 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr2, REML=F)
+sapply(c(mod_4, mod_5, mod_6, mod_7), BIC)
 
-
-sapply(c(mod_1, mod_4,mod_5,mod_6), BIC)
-
-step(mod_4)
+step(mod_5)
 ```
 
 
