@@ -73,17 +73,32 @@ gg_miss_upset(na_check)
 
 ```{r}
 # subset for group drug
+load('streetrx.RData')
+
 morph_data <- streetrx %>%
+  filter(api_temp == 'morphine')
+
+morph_data$Primary_Reason <- droplevels(morph_data$Primary_Reason)
+levels(morph_data$Primary_Reason)[1] <- "8 Prefer not to answer"
+
+morph_data$source <- droplevels(morph_data$source)
+levels(morph_data$source)[1] <- "Blank"
+
+morph_data <- morph_data %>% 
+  filter(between(ppm, 0.000001, 10)) %>%
   mutate_all( list( ~na_if(., '') ) ) %>%
   drop_na() %>%
   clean_names() %>%
-  filter(api_temp == 'morphine') %>%
   mutate(
     quarter=substring(yq_pdate, 5, 5),
     year=substring(yq_pdate, 1, 4),
     state=recode_factor(droplevels(state), 'USA'='Unknown')
-  )
+  ) 
+
+
+nrow(morph_data)
 ```
+
 
 ### Response Distribution
 
@@ -93,8 +108,6 @@ the influence of extreme outliers on the analysis of the ppm distribution.
 
 ```{r, fig.width=10, fig.height=3.5}
 # remove extreme outliers based on quantiles
-morph_trunc <- morph_data %>%
-  filter(between(ppm, quantile(ppm, 0.001), quantile(ppm, 0.999)))
 
 # untransformed density
 p1 <- morph_trunc %>%
@@ -158,14 +171,14 @@ state_size %>%
     booktabs=TRUE) %>%
   kable_styling(latex_options = c('hold_position'))
 
-state_size %>% 
-  dplyr::select(44:50) %>%
-  kable(
-    caption='7 States with Largest Sample Size',
-    align='c', 
-    booktabs=TRUE
-  ) %>%
-  kable_styling(latex_options = c('hold_position'))
+# state_size %>% 
+#   dplyr::select(44:50) %>%
+#   kable(
+#     caption='7 States with Largest Sample Size',
+#     align='c', 
+#     booktabs=TRUE
+#   ) %>%
+#   kable_styling(latex_options = c('hold_position'))
 ```
 
 ```{r}
@@ -173,7 +186,7 @@ state_size %>%
 morph_data <- morph_data %>%
   mutate(state=as.character(state)) %>%
   filter(!state %in% c(
-    'North Dakota', 'Washington, DC', 'Vermont', 'Wyoming', 'Alaska'
+    'Puerto Rico', 'Vermont'
   ))
 ```
 
@@ -202,7 +215,7 @@ p3 <- morph_state %>%
 p4 <- morph_state %>%
   ggplot(aes(y=log(ppm), x=state_abv)) +
     geom_boxplot(
-      fill=rainbow(49),
+      fill=rainbow(50),
       alpha=0.5    
     ) +
     scale_x_discrete(guide=guide_axis(angle = 90)) +
@@ -254,11 +267,12 @@ grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 morph_data <- morph_data %>%
   mutate(source=replace(
     source, !source %in% c(
+      "Blank",
       'Personal',
       'Heard it', 
       'Internet', 
       'Internet Pharmacy', 
-      'Drug forum', NA
+      'Drug forum'
     ), 'Internet'
   )) %>%
   droplevels()
@@ -273,6 +287,27 @@ morph_data %>%
     size=3
   ) +
   theme_bw()
+
+
+morph_data <- morph_data %>%
+  mutate(source=as.character(source)) %>%
+  filter(source != "Drug forum")
+
+morph_data %>%
+  ggplot(aes(x = source,y = log(ppm))) +
+  geom_boxplot() +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+
+morph_data %>%
+  group_by(source) %>%
+  summarize(n =n())
 ```
 
 
@@ -353,6 +388,28 @@ grid.arrange(yearplot, quarterplot, ncol=2)
 
 # jpeg("EDAplotQuarter.jpg", width = 500)
 # dev.off()
+
+
+# remove low sample size states
+morph_data <- morph_data %>%
+  mutate(Year=as.character(year)) %>%
+  filter(!year %in% c(
+    1969, 2000, 2002, 2005
+  ))
+
+
+
+morph_data %>%
+  ggplot(aes(x = year,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Year') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
 ```
 
 ### bulk_purchase vs.log(ppm)
@@ -453,8 +510,8 @@ morph_data <- morph_data %>%
   mutate(mgstr2 = case_when(
     mgstr <= 15              ~ "low",
     mgstr >15 & mgstr <= 30  ~ "medium",
-    mgstr >30 & mgstr <= 50  ~ "medium high",
-    mgstr >=50               ~ "high")
+    mgstr >30 & mgstr <= 60  ~ "medium high",
+    mgstr > 60            ~ "high")
   )
 
 morph_data %>%
@@ -480,108 +537,137 @@ morph_data %>%
 
 # Model
 
-```{r}
-modela <- lmer(log(ppm) ~ date_diff + (1|state), data = morph_data)
-modelb <- lmer(log(ppm) ~ date_diff + quarter + (1|state), data = morph_data)
-modelc <- lmer(log(ppm) ~ date_diff + quarter + mgstr + (1|state), data = morph_data)
-modeld <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + (1|state), data = morph_data)
-modele <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + (1|state), data = morph_data)
-modelf <- lmer(log(ppm) ~ date_diff + quarter + mgstr + bulk_purchase + primary_reason + source + (1|state), data = morph_data)
-
-#m <- ols_step_best_subset(model)
-#plot(m)
-#selectedMod <- step(model)
-#summary(selectedMod)
-
-bic_score <- sapply(c(modela, modelb, modelc, modeld, modele, modelf), BIC)
-re_results <- data.frame('Grouping' = c(
-    'Basic', '\\+ Source', '\\+ Reason', '\\+ Bulk', '\\+ mgstr', '\\+ quarter'
-  ), 'BIC' = bic_score)
-kable(re_results)
-```
-From this it looks like the best model includes date_diff, quarter, and mgstr 
-
-
-
 ### choose grouping variable
 
 
 ```{r}
-
 # group by state
-mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 # group by city
-mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + mgstr +
+mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 # group by region
-mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + mgstr +
+mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
 data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = bic_score) %>%
   kable()
  
+
 # jpeg("BICgroup.jpg", width = 350)
 # dev.off()
 ```
 
+
+
 Choose `State` as our grouping variable
 
 
+
+
 ```{r}
-# raw mgstr values
-mod_4 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr +
-                bulk_purchase + primary_reason + source, REML=F)
+model1 <- lmer(log(ppm) ~  (1|city), data = morph_data) # 
 
-# new mgstr levels
-mod_5 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
-                bulk_purchase + primary_reason + source, REML=F)
+model2 <- lmer(log(ppm) ~  (1|city) + state, data = morph_data) # 
+anova(model1,model2)
 
-# basic model with raw mgstr
-mod_6 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr, REML=F)
+model3 <- lmer(log(ppm) ~  (1|state) + usa_region, data = morph_data) 
 
-# basic model with new mgstr levels
-mod_7 <- lmer(data=morph_data, log(ppm) ~ (1 |state) +  mgstr2, REML=F)
 
-sapply(c(mod_4, mod_5, mod_6, mod_7), BIC)
+anova(model3,modela)
 
-step(mod_5)
+
+
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data) # 
+
+
+modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data) # 
+
+anova(modela,modelb)
+
+# ===== 
+modelc <- lmer(log(ppm) ~  mgstr2 + bulk_purchase + (1|state), data = morph_data) # 
+
+anova(modelb,modelc)
+
+
+# ===== 
+
+modeld <- lmer(log(ppm) ~  year + mgstr2 + bulk_purchase + (1|state), data = morph_data)
+
+modele <- lmer(log(ppm) ~  quarter + mgstr2 + bulk_purchase + (1|state), data = morph_data) # 
+
+modelf <- lmer(log(ppm) ~ date_diff + mgstr2 + bulk_purchase + (1|state), data = morph_data) 
+
+anova(modelc,modeld)
+
+anova(modelc,modele) 
+
+anova(modelc,modelf) 
+
+
+# ===== 
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data) # 
+
+anova(modele,modelg) 
+
+# ===== 
+modelh<- lmer(log(ppm) ~  quarter + primary_reason + mgstr2 + bulk_purchase + (1|state), data = morph_data) 
+
+```
+
+
+`modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)`
+
+```{r}
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)
+
+
+modelgg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+                 quarter * bulk_purchase, data = morph_data)
+
+anova(modelg,modelgg)
+
+modelggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+                 quarter * mgstr2, data = morph_data)
+
+anova(modelg,modelggg)
+
+modelgggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+                 bulk_purchase * mgstr2, data = morph_data)
+
+anova(modelg,modelgggg)
+
+modelggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+                 quarter * source, data = morph_data)
+
+anova(modelg,modelggggg)
+
+modelgggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+                 bulk_purchase * source, data = morph_data)
+
+anova(modelg,modelgggggg)
+
+
+modelggggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+                 source * mgstr2, data = morph_data)
+
+anova(modelg,modelggggggg)
+
 ```
 
 
 
+
+
 ```{r}
-# Test date_num
-mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr2
-                      + bulk_purchase + primary_reason + source, REML=F)
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)
 
-
-mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff  + mgstr2
-                        + bulk_purchase + primary_reason + source, REML=F)
-
-mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 
-                               + primary_reason + source, REML=F)
-
-mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2
-                                + bulk_purchase + source, REML=F)
-
-mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter
-                       + bulk_purchase + primary_reason + source, REML=F)
-
-
-mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2
-                        + bulk_purchase + primary_reason, REML=F)
-
-
-anova(mod_4,mod_drop_date)$`Pr(>Chisq)`[2] 
-anova(mod_4,mod_drop_quater)$`Pr(>Chisq)`[2] # add
-anova(mod_4,mod_drop_bulk_purchase)$`Pr(>Chisq)`[2] # add
-anova(mod_4,mod_drop_primary_reason)$`Pr(>Chisq)`[2] # add
-anova(mod_4,mod_drop_mgstr)$`Pr(>Chisq)`[2] # add
-anova(mod_4,mod_drop_source)$`Pr(>Chisq)`[2] 
+summary(modelg)
 ```
 
 
@@ -601,17 +687,6 @@ only have 1831 observations
 ### final model
 
 
-```{r, eval =T}
-mod_final1 <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr + quarter
-                   + bulk_purchase + primary_reason, REML=F)
-
-mod_final2<- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr2 + quarter
-                  + bulk_purchase + primary_reason, REML=F)
-
-BIC(mod_final1)
-BIC(mod_final2)
-```
-
 ```{r}
 # view coefficient estimates
 view_coef <- function(model) {
@@ -623,16 +698,22 @@ view_coef <- function(model) {
     kable_classic(full_width=FALSE)
 }
 
+
+
 # view parameter estimates
 view_params <- function(model) {
   params <- summary(model)$varcor %>%
     as.data.frame() %>%
-    select(vcov)
+    dplyr::select(vcov)
+  
   rownames(params) <- c('$\\tau^2$', '$\\sigma^2$')
   colnames(params) <- c('Estimate')
   kable(params) %>% 
     kable_classic(full_width=FALSE)
 }
+
+
+
 ```
 
 ```{r, fig.width=10, fig.height=10}
@@ -741,37 +822,37 @@ model_diag <- function(model) {
 ```
 
 ```{r, fig.heigh=10, fig.width=10}
-view_coef(mod_final2)
-view_params(mod_final2)
-model_diag(mod_final2)
+view_coef(modelg)
+view_params(modelg)
+model_diag(modelg)
 ```
 
 
 
 Remove the data point with the lowest residual.
 
-```{r}
+```{r, fig.heigh=10, fig.width=10}
 # remove lowest residual data point
-morph_data2 <- morph_data[-which.min(resid(mod_final2)),]
+morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
-# re-fit final model
-mod_final3 <- lmer(data=morph_data2, log(ppm) ~ (1 |state)  + mgstr2
-                   + bulk_purchase + quarter + primary_reason , REML=F)
 
-view_coef(mod_final3)
-view_params(mod_final3)
-model_diag(mod_final3)
+model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2)
+
+
+view_coef(model_g2)
+view_params(model_g2)
+model_diag(model_g2)
 ```
 
 
 # Influence
 
 ```{r}
-mod_final3_inf<- influence(mod_final3, group = "state")
+model_g2_inf<- influence(model_g2, group = "state")
 ```
 
 ```{r}
-cooks_distance <- cooks.distance(mod_final3_inf)
+cooks_distance <- cooks.distance(model_g2_inf)
 cutline <- 4 / length(unique(morph_data2$state))
 infindiv <- cooks_distance > cutline
 
@@ -793,13 +874,13 @@ ggplot(data=NULL, aes(x=1:length(unique(morph_data2$state)), y=cooks_distance)) 
 # dev.off()
 
 data.frame(
-  rownames(mod_final3_inf$`fixed.effects[-state]`),
+  rownames(model_g2_inf$`alt.fixed`),
   cooks_distance,
   infindiv
 ) %>% 
   filter(infindiv == TRUE) %>%
-  select(1:2) %>%
-  rename(`Influential State`=1) %>%
+  dplyr::select(2) %>%
+  rename(`Cook's Distance`=1) %>%
   kable() %>%
   kable_classic(full_width=FALSE)
 ```
@@ -808,7 +889,7 @@ data.frame(
 ```{r}
 # remove two most influential states
 morph_data3 <- morph_data2 %>%
-  filter(!state %in% c('Arizona', 'California'))
+  filter(!state %in% c('Florida', 'California','Pennsylvania'))
 
 mod_final4 <- lmer(data=morph_data3, log(ppm) ~ (1 |state)  + mgstr2
                    + bulk_purchase + quarter + primary_reason, REML=F)
