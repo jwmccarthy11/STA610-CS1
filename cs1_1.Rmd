@@ -57,24 +57,39 @@ load('streetrx.RData')
 
 # Introduction
 
+Prescription opioid abuse plays an essential role in public health issues. The price of prescription opioids indicates the supply-demand relationship of drugs. This study case aims to explore the relationship between drugs’ unit price and other factors. More specifically, our group’s interest is to explore the factors related to the cost per milligram and the heterogeneity in the region. The dataset is provided by StreetRx, a reporting tool for people at large to anonymously report the price they paid or heard for diverted prescription drugs.
+
+Our drug interest is Morphine. Morphine is used to “relieve moderate to severe pain and maybe habit-forming,” especially with prolonged use (MedlinePlus). 
+
+
 
 # EDA
 
-
 ### Missing Values
 
-```{r, fig.width=6, fig.height=3.5}
+```{r, fig.width=6, fig.height=3.5,results ='hide'}
 na_check <- streetrx %>%
   filter(api_temp == 'morphine') %>%
   mutate_all( list( ~na_if(., '') ) ) %>%
   droplevels()
-  
+
+dim(na_check)
+sum(is.na(na_check))
+
+sum(is.na(na_check$Primary_Reason))
+
+sum(is.na(na_check$source))
+
+sum(is.na(na_check))
+
+```
+
+```{r,fig.width=6, fig.height=3.5}
 gg_miss_upset(na_check)
 ```
 
-```{r}
+```{r,results ='hide'}
 # subset for group drug
-load('streetrx.RData')
 
 morph_data <- streetrx %>%
   filter(api_temp == 'morphine')
@@ -98,14 +113,17 @@ morph_data <- morph_data %>%
 
 
 nrow(morph_data)
+
+sum(morph_data$ppm <=0)
 ```
 
 
-### Response Distribution
+The dataset (Morphine) contains 9,268 observations with 13 variables. There are 13,443 empty cells (both the missing values and the blank). To maintain the statistical power and avoid bias, our group decided to recode the empty cells in the feature `Primary_Reason` (5061 in total)  as "8 Prefer not to answer" and recode the empty cells in `source` (3942 in total) as "Blank" because of the high missing rates. Then, we remove rows containing missing values.
 
-First, a look at the distributions of the response variable "ppm". Observations 
-with ppm between the 0.1 and 99.9 percentiles were considered so as to avoid 
-the influence of extreme outliers on the analysis of the ppm distribution.
+In addition, our group thinks there is no reason that the price per milligram can be a non-positive value or values greater than 10 (may because some people input the total price by mistake). The number of the ovservations we have is 5,582 now.
+
+### Price per milligram (Response variable)
+
 
 ```{r, fig.width=10, fig.height=3.5}
 # remove extreme outliers based on quantiles
@@ -144,11 +162,141 @@ p2 <- morph_data %>%
     theme_bw()
 
 grid.arrange(p1, p2, ncol=2)
+
+
 ```
 
-The distribution of ppm is clearly right-skewed, and it is strictly nonnegative 
-in value, so a log transformation may be appropriate. The distribution of 
+
+
+Whether in a hierarchical model or linear regression, the response variable has to be normally distributed. From the histogram on the left, the distribution of ppm is clearly right-skewed, and it is strictly nonnegative in value, so a log transformation may be appropriate. The distribution of 
 log(ppm) is given above, and appears closer to the desired normal.
+
+
+
+### Date
+
+Our group has considered three ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences from that starting date. The second choice is to split this date variable into two components, year and quarter, because we want the determine the relationship between drug unit price and seasons.
+
+
+record `price_date` as a continuous variable counting days from some start date.
+
+```{r}
+#min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
+
+morph_data <- morph_data %>% 
+  mutate(date_diff = as.numeric(
+    as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2013-01-01")
+  ))
+```
+
+```{r}
+morph_data %>%
+  ggplot(aes(x=date_diff)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=30
+    ) +
+    geom_density(size=0.75, bw=100) +
+    labs(title='Date Distribution') +
+    theme_bw()
+```
+
+
+
+### year & quarter vs.log(ppm)
+
+```{r,fig.width=10, fig.height=3.5}
+# t_year <- morph_data %>% 
+#   group_by(year) %>% 
+#   summarize(n = n()) %>% 
+#   tableGrob()
+
+yearplot <- morph_data %>%
+  ggplot(aes(x = year,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Year') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+# t_quarter <- morph_data %>% 
+#   group_by(quarter) %>% 
+#   summarize(n = n()) %>% 
+#   tableGrob()
+
+quarterplot <- morph_data %>%
+  ggplot(aes(x = quarter,y = log(ppm))) +
+  geom_boxplot() +
+  labs(
+    x='Quarter',
+    y=''
+  )  +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+# grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
+grid.arrange(yearplot, quarterplot, ncol=2)
+
+# jpeg("EDAplotQuarter.jpg", width = 500)
+# dev.off()
+
+
+# remove low sample size states
+morph_data <- morph_data %>%
+  mutate(Year=as.character(year)) %>%
+  filter(!year %in% c(
+    1969, 2000, 2002, 2005
+  ))
+
+
+
+morph_data %>%
+  ggplot(aes(x = year,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Year') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+```
+
+### bulk_purchase vs.log(ppm)
+
+```{r, fig.width=6, fig.height=3.5}
+morph_data %>%
+  ggplot(aes(x = bulk_purchase,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Bulk Purchase') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+```
+
+
+
+
 
 ### state vs. log(ppm)
 
@@ -315,125 +463,6 @@ morph_data %>%
 ```
 
 
-### date
-
-record `price_date` as a continuous variable counting days from some start date.
-
-```{r}
-#min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
-
-morph_data <- morph_data %>% 
-  mutate(date_diff = as.numeric(
-    as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2013-01-01")
-  ))
-```
-
-```{r}
-morph_data %>%
-  ggplot(aes(x=date_diff)) +
-    geom_histogram(
-      aes(y=..density..), 
-      color='black', 
-      linetype='dashed',
-      size=0.5,
-      fill='lightblue', 
-      alpha=0.5,
-      bins=30
-    ) +
-    geom_density(size=0.75, bw=100) +
-    labs(title='Date Distribution') +
-    theme_bw()
-```
-
-
-
-### year & quarter vs.log(ppm)
-
-```{r,fig.width=10, fig.height=3.5}
-# t_year <- morph_data %>% 
-#   group_by(year) %>% 
-#   summarize(n = n()) %>% 
-#   tableGrob()
-
-yearplot <- morph_data %>%
-  ggplot(aes(x = year,y = log(ppm))) +
-  geom_boxplot() +
-  labs(x='Year') +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
-# t_quarter <- morph_data %>% 
-#   group_by(quarter) %>% 
-#   summarize(n = n()) %>% 
-#   tableGrob()
-
-quarterplot <- morph_data %>%
-  ggplot(aes(x = quarter,y = log(ppm))) +
-  geom_boxplot() +
-  labs(
-    x='Quarter',
-    y=''
-  )  +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
-# grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
-grid.arrange(yearplot, quarterplot, ncol=2)
-
-# jpeg("EDAplotQuarter.jpg", width = 500)
-# dev.off()
-
-
-# remove low sample size states
-morph_data <- morph_data %>%
-  mutate(Year=as.character(year)) %>%
-  filter(!year %in% c(
-    1969, 2000, 2002, 2005
-  ))
-
-
-
-morph_data %>%
-  ggplot(aes(x = year,y = log(ppm))) +
-  geom_boxplot() +
-  labs(x='Year') +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-```
-
-### bulk_purchase vs.log(ppm)
-
-```{r, fig.width=6, fig.height=3.5}
-morph_data %>%
-  ggplot(aes(x = bulk_purchase,y = log(ppm))) +
-  geom_boxplot() +
-  labs(x='Bulk Purchase') +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
-# jpeg("EDAplotBulk.jpg", width = 500)
-# dev.off()
-```
 
 
 ### Primary_Reason vs.log(ppm)
