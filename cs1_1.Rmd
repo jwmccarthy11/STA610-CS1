@@ -30,6 +30,8 @@ library(tidybayes)
 library(naniar)
 library(olsrr)
 library(lmerTest)
+library(rlist)
+library(XML)
 require(lattice)
 
 
@@ -553,25 +555,25 @@ step(mod_5)
 
 ```{r}
 # Test date_num
-mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr2 +
-                bulk_purchase + primary_reason + source, REML=F)
+mod_drop_date <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + quarter + mgstr2
+                      + bulk_purchase + primary_reason + source, REML=F)
 
 
-mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff  + mgstr2 +
-                bulk_purchase + primary_reason + source, REML=F)
+mod_drop_quater <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff  + mgstr2
+                        + bulk_purchase + primary_reason + source, REML=F)
 
 mod_drop_bulk_purchase <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 
                                + primary_reason + source, REML=F)
 
-mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
-                bulk_purchase+ source, REML=F)
+mod_drop_primary_reason <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2
+                                + bulk_purchase + source, REML=F)
 
-mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter  +
-                bulk_purchase + primary_reason + source, REML=F)
+mod_drop_mgstr <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter
+                       + bulk_purchase + primary_reason + source, REML=F)
 
 
-mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
-                bulk_purchase + primary_reason, REML=F)
+mod_drop_source <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2
+                        + bulk_purchase + primary_reason, REML=F)
 
 
 anova(mod_4,mod_drop_date)$`Pr(>Chisq)`[2] 
@@ -600,27 +602,148 @@ only have 1831 observations
 
 
 ```{r, eval =T}
-mod_final1 <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr + quarter +
-                bulk_purchase + primary_reason, REML=F)
+mod_final1 <- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr + quarter
+                   + bulk_purchase + primary_reason, REML=F)
 
-mod_final2<- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr2 + quarter +
-                bulk_purchase + primary_reason, REML=F)
+mod_final2<- lmer(data=morph_data, log(ppm) ~ (1 |state)  + mgstr2 + quarter
+                  + bulk_purchase + primary_reason, REML=F)
 
 BIC(mod_final1)
 BIC(mod_final2)
 ```
 
 ```{r}
-tab_model(mod_final2)
+# view coefficient estimates
+view_coef <- function(model) {
+  summary(model)$coefficients %>%
+    as.data.frame() %>%
+    mutate(`exp(Estimate)`=exp(Estimate)) %>%
+    relocate(`exp(Estimate)`, .after=Estimate) %>%
+    kable() %>%
+    kable_classic(full_width=FALSE)
+}
 
-webshot::webshot("summary.html", "summary.png")
+# view parameter estimates
+view_params <- function(model) {
+  params <- summary(model)$varcor %>%
+    as.data.frame() %>%
+    select(vcov)
+  rownames(params) <- c('$\\tau^2$', '$\\sigma^2$')
+  colnames(params) <- c('Estimate')
+  kable(params) %>% 
+    kable_classic(full_width=FALSE)
+}
 ```
 
+```{r, fig.width=10, fig.height=10}
+plot_qq <- function(model) {
+  df <- data.frame(
+    res=residuals(model, scaled=TRUE)
+  )
+  
+  p <- ggplot(df, aes(sample=res)) + 
+    stat_qq() + 
+    stat_qq_line(
+      linetype='dashed',
+      color='red',
+      size=1
+    ) +
+    labs(
+      title='Normal QQ for Residuals',
+      x='Theoretical Quantiles',
+      y='Standardized Residuals'
+    ) + theme_bw()
+  
+  return(p)
+}
+plot_ranef_qq <- function(model) {
+  df <- data.frame(
+    res=ranef(model)[[1]][[1]]
+  )
+  
+  p <- ggplot(df, aes(sample=res)) + 
+    stat_qq() + 
+    stat_qq_line(
+      linetype='dashed',
+      color='red',
+      size=1
+    ) +
+    labs(
+      title='Normal QQ for Random Effects',
+      x='Theoretical Quantiles',
+      y='State Intercept'
+    ) + theme_bw()
+  
+  return(p)
+}
+plot_res_fit <- function(model) {
+  df <- data.frame(
+    res=residuals(model),
+    fit=fitted(model)
+  )
+  
+  p <- ggplot(df, aes(x=fit, y=res)) +
+    geom_point() +
+    geom_hline(
+      yintercept=0,
+      linetype="dashed"
+    ) +
+    geom_smooth() +
+    labs(
+      title='Residuals vs. Fitted',
+      x='Fitted',
+      y='Residuals'
+    ) + theme_bw()
+  
+  return(p)
+}
+plot_scale_loc <- function(model) {
+  df <- data.frame(
+    res=sqrt(residuals(model, scaled=TRUE)),
+    fit=fitted(model)
+  )
+  
+  p <- ggplot(df, aes(x=fit, y=res)) +
+    geom_point() +
+    geom_smooth() +
+    labs(
+      title='Scale-Location',
+      x='Fitted',
+      y=expression(sqrt('Standardized Residuals'))
+    ) + theme_bw()
+  
+  return(p)
+}
+plot_res_dens <- function(model) {
+  df <- data.frame(
+    res=residuals(model)
+  )
+  
+  p <- ggplot(df, aes(x=res)) +
+    geom_density() +
+    labs(
+      title='Residuals Density',
+      x='Residuals',
+      y='Density'
+    ) + theme_bw()
+  
+  return(p)
+}
+  
+model_diag <- function(model) {
+  p1 <- plot_res_fit(model)
+  p2 <- plot_qq(model)
+  p3 <- plot_ranef_qq(model)
+  p4 <- plot_res_dens(model)
+  
+  cowplot::plot_grid(p1, p2, p3, p4, nrow=2)
+}
+```
 
-```{r error=FALSE, fig.align='center', fig.height=, message=FALSE, warning=FALSE, fig.height=2}
-resqq <- plot_resqq(mod_final2)
-ranefci <- plot_ranef(mod_final2)
-grid.arrange(resqq, ranefci, ncol = 2)
+```{r, fig.heigh=10, fig.width=10}
+view_coef(mod_final2)
+view_params(mod_final2)
+model_diag(mod_final2)
 ```
 
 
@@ -628,17 +751,16 @@ grid.arrange(resqq, ranefci, ncol = 2)
 Remove the data point with the lowest residual.
 
 ```{r}
+# remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(mod_final2)),]
 
-mod_final3 <- lmer(data=morph_data2, log(ppm) ~ (1 |state)  + mgstr2 + 
-                     bulk_purchase + quarter + 
-                primary_reason , REML=F)
+# re-fit final model
+mod_final3 <- lmer(data=morph_data2, log(ppm) ~ (1 |state)  + mgstr2
+                   + bulk_purchase + quarter + primary_reason , REML=F)
 
-
-resqq <- plot_resqq(mod_final3)
-ranefci <- plot_ranef(mod_final3)
-grid.arrange(resqq, ranefci, ncol = 2)
-
+view_coef(mod_final3)
+view_params(mod_final3)
+model_diag(mod_final3)
 ```
 
 
@@ -650,47 +772,58 @@ mod_final3_inf<- influence(mod_final3, group = "state")
 
 ```{r}
 cooks_distance <- cooks.distance(mod_final3_inf)
+cutline <- 4 / length(unique(morph_data2$state))
+infindiv <- cooks_distance > cutline
 
+ggplot(data=NULL, aes(x=1:length(unique(morph_data2$state)), y=cooks_distance)) +
+  geom_point() +
+  geom_hline(
+    yintercept=cutline,
+    linetype='dashed',
+    color='red',
+    size=0.75
+  ) +
+  labs(
+    x='Index',
+    y='Cooks Distance'
+  ) +
+  theme_bw()
 
-cutline <- 4/length(unique(morph_data2$state))
+# jpeg("CooksDistance.jpg", width = 600)
+# dev.off()
 
-
-infindiv <- cooks_distance > 4/length(unique(morph_data2$state))
-
-jpeg("CooksDistance.jpg", width = 600)
-
-plot(cooks_distance) + abline(h = cutline, col = "red")
-
-dev.off()
-
-subset(data.frame(rownames(mod_final3_inf$`fixed.effects[-state]`),cooks_distance,infindiv),infindiv == TRUE)
-
+data.frame(
+  rownames(mod_final3_inf$`fixed.effects[-state]`),
+  cooks_distance,
+  infindiv
+) %>% 
+  filter(infindiv == TRUE) %>%
+  select(1:2) %>%
+  rename(`Influential State`=1) %>%
+  kable() %>%
+  kable_classic(full_width=FALSE)
 ```
 
 
 ```{r}
-morph_data3  <- morph_data2 %>%
-  filter(state != "California") %>%
-  filter(state != "Arizona") 
+# remove two most influential states
+morph_data3 <- morph_data2 %>%
+  filter(!state %in% c('Arizona', 'California'))
 
+mod_final4 <- lmer(data=morph_data3, log(ppm) ~ (1 |state)  + mgstr2
+                   + bulk_purchase + quarter + primary_reason, REML=F)
 
-mod_final4 <- lmer(data=morph_data3, log(ppm) ~ (1 |state)  + mgstr2 + 
-                     bulk_purchase + quarter + 
-                primary_reason , REML=F)
-
-
-resqq <- plot_resqq(mod_final4)
-ranefci <- plot_ranef(mod_final4)
-grid.arrange(resqq, ranefci, ncol = 2)
+view_coef(mod_final4)
+view_params(mod_final4)
+model_diag(mod_final4)
 ```
 
 ```{r}
-
-jpeg("randomef.png", width = 350)
-
+# view intercept estimates and intervals
 dotplot(ranef(mod_final2, condVar = TRUE))
 
-dev.off()
+# jpeg("randomef.png", width = 350)
+# dev.off()
 ```
 
 
