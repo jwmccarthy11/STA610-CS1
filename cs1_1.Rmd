@@ -931,7 +931,7 @@ Does not change much, but the sample size decreases sharply -> decide not to rem
 ```{r}
 # view intercept estimates and intervals
 dotplot(ranef(model_g2, condVar = TRUE))
-
+ranef(model_g2, condVar = TRUE) %>% kable()
 ```
 
 
