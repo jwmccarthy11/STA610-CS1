@@ -1,11 +1,19 @@
 ---
 title: "STA610 Case Study 1"
-author: "Emily Gentles, Weiyi Liu, Jack McCarthy, Qinzhe Wang"
+author: 
+  -  Emily Gentles (Presenter)   
+  -  Weiyi Liu (Writer)   
+  -  Jack McCarthy (Programmer)   
+  -  Qinzhe Wang (Coordinator & Checker)   
+  
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   pdf_document:
     latex_engine: xelatex
+fontsize: 11pt
+geometry: margin=1.5cm
 ---
+
 
 ```{r setup, include=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message = FALSE, cache = TRUE)
@@ -45,14 +53,7 @@ library(redres)
 load('streetrx.RData')
 ```
 
-Qinzhe - Coordinator & Checker: Double-checks the work for reproducibility and errors. Also responsible for submitting the report and presentation files.
-         Coordinator: Keeps everyone on task and makes sure everyone is involved. Also responsible for coordinating team meetings and defining the objectives for each meeting.
 
-Emily - Presenter: Primarily responsible for organizing and putting the team presentations together.
-
-Jack - Programmer: Primarily responsible for all things coding. The programmer is responsible for putting everyone’s code together and making sure the final product is “readable”.
-
-Weiyi - Writer: Primarily responsible for putting together the final report.
 
 # Introduction
 
@@ -110,7 +111,7 @@ the influence of extreme outliers on the analysis of the ppm distribution.
 # remove extreme outliers based on quantiles
 
 # untransformed density
-p1 <- morph_trunc %>%
+p1 <- morph_data %>%
   ggplot(aes(x=ppm)) +
     geom_histogram(
       aes(y=..density..), 
@@ -126,7 +127,7 @@ p1 <- morph_trunc %>%
     theme_bw()
 
 # log-transformed density
-p2 <- morph_trunc %>%
+p2 <- morph_data %>%
   ggplot(aes(x=log(ppm))) +
     geom_histogram(
       aes(y=..density..), 
@@ -188,13 +189,15 @@ morph_data <- morph_data %>%
   filter(!state %in% c(
     'Puerto Rico', 'Vermont'
   ))
+
 ```
 
 
 ```{r, fig.width=10, fig.height=3}
-morph_state <- morph_trunc %>%
+morph_state <- morph_data %>%
   filter(state %in% state.name) %>%
   mutate(state_abv=state.abb[match(state,state.name)])
+
 
 grand_mean <- mean(morph_state$ppm)
 
@@ -212,10 +215,11 @@ p3 <- morph_state %>%
     labs(x='sample size', y='mean log(ppm)') +
     theme_bw()
 
+
 p4 <- morph_state %>%
   ggplot(aes(y=log(ppm), x=state_abv)) +
     geom_boxplot(
-      fill=rainbow(50),
+      fill=rainbow(49),
       alpha=0.5    
     ) +
     scale_x_discrete(guide=guide_axis(angle = 90)) +
@@ -577,7 +581,7 @@ anova(model1,model2)
 
 model3 <- lmer(log(ppm) ~  (1|state) + usa_region, data = morph_data) 
 
-
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data) # 
 anova(model3,modela)
 
 
@@ -662,12 +666,9 @@ anova(modelg,modelggggggg)
 
 
 
-
-
 ```{r}
 modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)
 
-summary(modelg)
 ```
 
 
@@ -874,7 +875,6 @@ ggplot(data=NULL, aes(x=1:length(unique(morph_data2$state)), y=cooks_distance)) 
 # dev.off()
 
 data.frame(
-  rownames(model_g2_inf$`alt.fixed`),
   cooks_distance,
   infindiv
 ) %>% 
@@ -885,39 +885,31 @@ data.frame(
   kable_classic(full_width=FALSE)
 ```
 
-
-```{r}
+```{r, fig.heigh=10, fig.width=10}
 # remove two most influential states
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
 
-mod_final4 <- lmer(data=morph_data3, log(ppm) ~ (1 |state)  + mgstr2
-                   + bulk_purchase + quarter + primary_reason, REML=F)
 
-view_coef(mod_final4)
-view_params(mod_final4)
-model_diag(mod_final4)
+model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3)
+
+view_coef(model_g3)
+view_params(model_g3)
+model_diag(model_g3)
 ```
+
+Does not change much, but the sample size decreases sharply -> decide not to remove these groups.
+
+
+
 
 ```{r}
 # view intercept estimates and intervals
-dotplot(ranef(mod_final2, condVar = TRUE))
+dotplot(ranef(model_g2, condVar = TRUE))
 
-# jpeg("randomef.png", width = 350)
-# dev.off()
 ```
 
 
-Plots are not good -> not remove those two states?
-
-
-
-
-
-Interclass correlation is 0.0159, very small so very little correlation across states.
-Including bulk purchases, the interclass correlation is 0.016, so bulk purchase actually increases the heterogeneity across states by a very small amount.
-
-Make table with results for all models tested in ANOVA
 
 
 
