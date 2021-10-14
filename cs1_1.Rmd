@@ -579,55 +579,76 @@ From the boxplot, we see a more clear trend that the `log(ppm)` values decrease 
 
 # Model
 
-### choose grouping variable
+### Model Selection
 
+Our research question is to investigate factors related to the per milligram price of morphine and explore heterogeneity in pricing by location. As discussed in the EDA part, we do not have enough data to estimate the effects in city-level. Meanwhile, the drug prices do not seem to change significantly across regions. Thus, state is a more preferable choice of accounting for location. Since many states have relatively small sample sizes, a hierarchical model allows us to borrow information across states.
+
+Comparing three full models with different grouping variables, the AIC and BIC score also suggest choosing `state` as the group-level variable.
 
 ```{r}
-# group by state
-mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + mgstr2 +
-                bulk_purchase + primary_reason + source, REML=F)
-
 # group by city
-mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + mgstr2 +
-                bulk_purchase + primary_reason + source, REML=F)
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city), REML=F)
+
+# group by state
+mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |state), REML=F)
 
 # group by region
-mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + mgstr2 +
-                bulk_purchase + primary_reason + source, REML=F)
+mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region), REML=F)
 
+aic_score <- sapply(c(mod_1, mod_2, mod_3), AIC)
 bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
-data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = bic_score) %>%
+
+data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
   kable()
  
-
 ```
 
 
+```{r}
+# appendix
+# group by city
+mod_full_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + year + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
 
-Choose `State` as our grouping variable
+# group by state
+mod_full_2 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + year + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
+
+# group by region
+mod_full_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + year + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
+
+aic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), AIC)
+bic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), BIC)
+
+data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
+  kable()
+ 
+```
+
+Our baseline model incorporates only the state-level random intercepts. For other individual level predictors, we add one variable to the model each time, and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The **LRT** is designed for nested models. While the BIC score considers both the likelihood and the model complexity, and gives a more general sense of model performance. The table below displays the results of model selection.
+
+Our final model incorporates the grouping variable `state` and the individual level predictors `mgstr` (recoded as 4 levels), `bulk_purchase`, `quarter`, `source`. We also tried to using the full model as a starting point, and did stepwise backward elimination. The results agrees with our final model (See appendix).
+
+
+bic <- up xiao  +
 
 
 
+
+```{r}
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
+summary(modela)
+```
 
 ```{r a}
-model1 <- lmer(log(ppm) ~  (1|city), data = morph_data, REML=F) # 
-
-model2 <- lmer(log(ppm) ~  (1|city) + state, data = morph_data, REML=F) # 
-anova(model1,model2)
-
-model3 <- lmer(log(ppm) ~  (1|state) + usa_region, data = morph_data, REML=F) 
-
-modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
-anova(model3,modela)
-
-
-
 modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
 
 
 modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data, REML=F) # 
 
-anova(modela,modelb)
+
+
 
 # ===== 
 modelc <- lmer(log(ppm) ~  mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
@@ -667,8 +688,30 @@ step(modelAll)
 
 ```
 
+```{r}
+model <- c("log(ppm) ~  (1|state)",
+           "log(ppm) ~  (1|state) + mgstr2",
+           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase",
+           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + year",
+           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + quarter",
+           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + date_diff",
+           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + quarter + source",
+           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + quarter + source + primary_reason")
+LRT <- c("",
+         anova(modela,modelb)$`Pr(>Chisq)`[2],
+         anova(modelb,modelc)$`Pr(>Chisq)`[2],
+         anova(modelc,modeld)$`Pr(>Chisq)`[2],
+         anova(modelc,modele)$`Pr(>Chisq)`[2],
+         anova(modelc,modelf)$`Pr(>Chisq)`[2],
+         anova(modele,modelg)$`Pr(>Chisq)`[2],
+         anova(modelg,modelh)$`Pr(>Chisq)`[2])
+BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
+data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
+  kable()
+```
 
-`modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)`
+
+
 
 ```{r}
 modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
@@ -715,11 +758,22 @@ modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state)
 ```
 
 
-We now have `quarter`, `bulk_purchase`, `primary_reason` and `mgstr2` in our model, regarding `state` as the grouping variable.
-
-
 ### final model
 
+Our final model is 
+$$log(y_{ij}) = \beta_0 + b_{0j} + \beta_1 M_{ij} + \beta_2 B_{ij} + \beta_3 Q_{ij} + \beta_4 S_{ij} + \epsilon_{ij}$$
+$$b_{0j} \sim \mathcal{N}(0, \tau^2) \perp \epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)$$
+The response variable and predictors are defined as:
+
+ - $y_ij$: Per miligram price of morphine for individual i in state j
+ 
+ - $M_{ij}$: Dosage strength in mg of the units purchased, labeled into 4 levels
+ 
+ - $B_{ij}$: Bulk purchase, an indicator for whether 10+ units were purchased at once
+ 
+ - $Q_{ij}$: Quarter of the reported purchase
+ 
+ - $S_{ij}$: Source of information (report purchases they did not personally make)
 
 ```{r}
 # view coefficient estimates
