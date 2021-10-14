@@ -88,6 +88,7 @@ sum(is.na(na_check))
 gg_miss_upset(na_check)
 ```
 
+
 ```{r,results ='hide'}
 # subset for group drug
 
@@ -96,6 +97,7 @@ morph_data <- streetrx %>%
 
 morph_data$Primary_Reason <- droplevels(morph_data$Primary_Reason)
 levels(morph_data$Primary_Reason)[1] <- "8 Prefer not to answer"
+levels(morph_data$Primary_Reason)[2] <- "8 Prefer not to answer"
 
 morph_data$source <- droplevels(morph_data$source)
 levels(morph_data$source)[1] <- "Blank"
@@ -118,9 +120,9 @@ sum(morph_data$ppm <=0)
 ```
 
 
-The dataset (Morphine) contains 9,268 observations with 13 variables. There are 13,443 empty cells (both the missing values and the blank). To maintain the statistical power and avoid bias, our group decided to recode the empty cells in `Primary_Reason` (5061 in total)  as "8 Prefer not to answer" and recode the empty cells in `source` (3942 in total) as "Blank" because of the high missing rates. Then, we removed other rows with missing values.
+The dataset (Morphine) contains 9,268 observations with 13 variables. There are 13,443 empty cells (both the missing values and the blank). To maintain the statistical power and avoid bias, our group decided to recode the empty cells and "0 Reporter did not answer this question" in `Primary_Reason` (5061 in total)  as "8 Prefer not to answer" and recode the empty cells in `source` (3942 in total) as "Blank" because of the high missing rates. Then, we removed other rows with missing values.
 
-In addition, we think there is no reason that the price per milligram can be a negative value or values greater than 10 (may because some people input the total price by mistake). The number of the observations we have is 5,582 now.
+In addition, we think there is no reason that the price per milligram can be a non-positive value or values greater than 10 (may because some people input the total price by mistake). The number of the observations we have is 5,582 now.
 
 
 ### Response Variable: Price per milligram 
@@ -214,14 +216,6 @@ state_size %>%
     booktabs=TRUE) %>%
   kable_styling(latex_options = c('hold_position'))
 
-# state_size %>% 
-#   dplyr::select(44:50) %>%
-#   kable(
-#     caption='7 States with Largest Sample Size',
-#     align='c', 
-#     booktabs=TRUE
-#   ) %>%
-#   kable_styling(latex_options = c('hold_position'))
 ```
 
 
@@ -277,10 +271,7 @@ From the above boxplot of `log(ppm)` against `state`, it is also evident that th
 
 #### Region
 
-From the boxplot we still see
-We also have access to the broader region in which a purchase is made. This 
-could be useful if we wanted to develop a simpler model that still captured 
-variation by purchase location.
+From the boxplot we still see the `log(ppm)` distributions differ slightly across regions, though not that much as across states. We may also consider using region as the grouping variable.
 
 ```{r, fig.height=3, fig.width=10}
 t1 <- morph_state %>%
@@ -303,15 +294,16 @@ grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 ```
 
 
-### Date
+### Date (price_date)
 
-As for the `price_date`, we noticed some observations are prior to the establishment of StreetRx, which might be wrong inputs. We dropped the observations prior to 2010. For the rest observations, we came up with two ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences (`date_diff`) from that starting date. The second choice is to split this date variable into two components, `year` and `quarter`, so that we can explore the trend of unit drug price over time and the seasonality. Please see the appendix for the distribution `date_diff` and the relationships between `log(ppm)` and `year`, `quarter`.
+As for the `price_date`, we noticed some observations are prior to the establishment of StreetRx, which might be wrong inputs. We dropped the observations prior to 2010. For the rest observations, we came up with two ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences (`date_diff`) from that starting date. The second choice is to split this date variable into two components, `year` and `quarter`, so that we can explore the trend of unit drug price over time and the seasonality. 
 
-```{r}
+Our visualizations suggested there is no clear trend that the log value of per milligram price of morphine varies along with `date_diff`. However, for different `year` and `quarter`, the `log(ppm)` value varies a little bit (see appendix). 
+
+
+
+```{r results='hide'}
 min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
-```
-
-```{r}
 morph_data %>% group_by(year) %>% summarise(n = n())
 ```
 
@@ -330,8 +322,10 @@ morph_data <- morph_data %>%
 morph_data <- morph_data %>% 
   mutate(date_diff = as.numeric(
     as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2010-01-01")
-  ))
+    )
+  )
 ```
+
 
 ```{r}
 morph_data %>%
@@ -350,16 +344,26 @@ morph_data %>%
     theme_bw()
 ```
 
+```{r}
+morph_data %>%
+  ggplot(aes(x=date_diff, y=log(ppm))) +
+    geom_point() +
+    geom_smooth() +
+    theme_bw()
+
+# check for random slopes
+# morph_data_a <- subset(morph_data,state %in% c("Arizona", "Texas","California", "Pennsylvania"))
+# morph_data_a %>% ggplot(aes(x = date_diff, y = log(ppm))) + 
+#   geom_point() +
+#   geom_smooth() +
+#   theme_bw() +
+#   facet_wrap('state', scales = "fixed")
+
+```
 
 
-### year & quarter vs.log(ppm)
 
-
-
-
-
-```{r,fig.width=10, fig.height=3.5}
-
+```{r,fig.width=8, fig.height=3.5}
 yearplot <- morph_data %>%
   ggplot(aes(x = year,y = log(ppm))) +
   geom_boxplot() +
@@ -391,7 +395,7 @@ quarterplot <- morph_data %>%
 grid.arrange(yearplot, quarterplot, ncol=2)
 ```
 
-### bulk_purchase vs.log(ppm)
+### Bulk_purchase
 
 There is no need to conduct any data cleaning on `bulk_purchase`. And from the boxplot (see appendix), there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
 
@@ -413,7 +417,9 @@ morph_data %>%
 
 
 
-### source vs. log(ppm)
+### Source
+
+We have recoded the missing value as "Blank" and the name of websites as "Internet". And we dropped the only observation whose `source` is "Drug Forum". From the boxplot, we see the `log(ppm)` value varies among different sources (see appendix).
 
 ```{r, fig.width=6, fig.height=3.5}
 # unique(morph_data$source)
@@ -432,17 +438,6 @@ morph_data <- morph_data %>%
   )) %>%
   droplevels()
 
-morph_data %>%
-  ggplot(aes(x = source,y = log(ppm))) +
-  geom_boxplot() +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
 
 morph_data <- morph_data %>%
   mutate(source=as.character(source)) %>%
@@ -455,23 +450,22 @@ morph_data %>%
     fun.y=mean, 
     geom='point',
     color='red',
-    size=3
+    size=2
   ) +
   theme_bw()
 
 
-morph_data %>%
-  group_by(source) %>%
-  summarize(n =n())
+# morph_data %>%
+#   group_by(source) %>%
+#   summarize(n =n())
 ```
 
 
+### Primary Reason
 
+For `primary_reason`, we have converted the empty cells and "0 Reporter did not answer this question" to "8 Prefer not to answer". The `log(ppm)` value varies a lot among different reasons for purchasing the morphine (see appendix).
 
-### Primary_Reason vs.log(ppm)
-
-
-```{r}
+```{r, fig.width=6, fig.height=3.5}
 morph_data %>%
   ggplot(aes(x = primary_reason,y =log(ppm))) +
   geom_boxplot() +
@@ -482,14 +476,16 @@ morph_data %>%
       geom='point',
       color='red',
       size=3
-    )
+    ) +
+  theme_bw()
 
-# jpeg("EDAplotReason.jpg", width = 500)
-# dev.off()
 ```
 
 
-### mgstr vs. log(ppm)
+### Dosage Strength (mgstr)
+
+From the scatter plot of `log(ppm)` against `mgstr`, there is a slight trend that the larger the dosage strength, the smaller the per milligram price. We have also noticed that `mgstr` only takes 16 discrete values. Therefore, we consider to label it into 4 levels ("low", "medium", "medium high", and "high") based on the 0.25, 0.5, and 0.75 quantiles of `mgstr`.
+
 
 ```{r}
 morph_data %>%
@@ -498,11 +494,11 @@ morph_data %>%
     geom_smooth() +
     theme_bw()
 
-morph_data %>%
-  ggplot(aes(x=log(mgstr), y=log(ppm))) +
-    geom_point() +
-    geom_smooth() +
-    theme_bw()
+# morph_data %>%
+#   ggplot(aes(x=log(mgstr), y=log(ppm))) +
+#     geom_point() +
+#     geom_smooth() +
+#     theme_bw()
 
 morph_data %>%
   ggplot(aes(x=mgstr)) +
@@ -522,6 +518,7 @@ morph_data %>%
 
 
 ```{r}
+# check for random slopes
 morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) + 
   geom_point() +
   geom_smooth() +
@@ -554,17 +551,16 @@ quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
 ## here we decide to re-code mgstr by quantile
 morph_data <- morph_data %>%
   mutate(mgstr2 = case_when(
-    mgstr <= 15              ~ "low",
-    mgstr >15 & mgstr <= 30  ~ "medium",
-    mgstr >30 & mgstr <= 60  ~ "medium high",
-    mgstr > 60            ~ "high")
+    mgstr <= 15              ~ "1 low",
+    mgstr >15 & mgstr <= 30  ~ "2 medium",
+    mgstr >30 & mgstr <= 60  ~ "3 medium high",
+    mgstr > 60            ~ "4 high")
   )
 
 morph_data %>%
   ggplot(aes(x=mgstr2 ,y=log(ppm))) +
   geom_boxplot() +
   labs(y="log(ppm)", x="Strength")  +
-  coord_flip() +
   stat_summary(
     fun.y=mean, 
     geom='point',
@@ -577,7 +573,7 @@ morph_data %>%
 # dev.off()
 ```
 
-
+From the boxplot, we see a more clear trend that the `log(ppm)` values decrease as the dosage strength increase.
 
 
 
@@ -604,8 +600,6 @@ data.frame('Grouping' = c('State', 'City', 'Region'), 'BIC' = bic_score) %>%
   kable()
  
 
-# jpeg("BICgroup.jpg", width = 350)
-# dev.off()
 ```
 
 
@@ -666,6 +660,7 @@ anova(modele,modelg)
 # Maybe a little cleaner way to do this
 modelh<- lmer(log(ppm) ~  quarter + primary_reason + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) 
 
+anova(modelg, modelh)
 
 modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
 step(modelAll)
