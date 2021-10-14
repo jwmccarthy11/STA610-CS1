@@ -44,7 +44,7 @@ require(lattice)
 
 
 # devtools::install_github("goodekat/redres")
-#library(redres)
+library(redres)
 
 
 ```
@@ -118,11 +118,12 @@ sum(morph_data$ppm <=0)
 ```
 
 
-The dataset (Morphine) contains 9,268 observations with 13 variables. There are 13,443 empty cells (both the missing values and the blank). To maintain the statistical power and avoid bias, our group decided to recode the empty cells in the feature `Primary_Reason` (5061 in total)  as "8 Prefer not to answer" and recode the empty cells in `source` (3942 in total) as "Blank" because of the high missing rates. Then, we remove rows containing missing values.
+The dataset (Morphine) contains 9,268 observations with 13 variables. There are 13,443 empty cells (both the missing values and the blank). To maintain the statistical power and avoid bias, our group decided to recode the empty cells in `Primary_Reason` (5061 in total)  as "8 Prefer not to answer" and recode the empty cells in `source` (3942 in total) as "Blank" because of the high missing rates. Then, we removed other rows with missing values.
 
-In addition, our group thinks there is no reason that the price per milligram can be a non-positive value or values greater than 10 (may because some people input the total price by mistake). The number of the observations we have is 5,582 now.
+In addition, we think there is no reason that the price per milligram can be a negative value or values greater than 10 (may because some people input the total price by mistake). The number of the observations we have is 5,582 now.
 
-### Price per milligram (Response variable)
+
+### Response Variable: Price per milligram 
 
 
 ```{r, fig.width=10, fig.height=3.5}
@@ -167,140 +168,33 @@ grid.arrange(p1, p2, ncol=2)
 ```
 
 
-
-Whether in a hierarchical model or linear regression, the response variable has to be normally distributed. From the histogram on the left, the distribution of ppm is clearly right-skewed, and it is strictly nonnegative in value, so a log transformation may be appropriate. The distribution of 
-log(ppm) is given above, and appears closer to the desired normal.
-
+Whether we fit a hierarchical model or linear regression, the response variable should be normally distributed. From the histogram on the left, the distribution of `ppm` is clearly right-skewed. Since `ppm` is strictly non-negative, a log transformation may be appropriate. The distribution of 
+`log(ppm)` is given above, and appears closer to the desired normal.
 
 
-### Date
 
-Our group has considered three ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences from that starting date. The second choice is to split this date variable into two components, year and quarter, because we want the determine the relationship between drug unit price and seasons.
+### Grouping Variable: city, state, and USA_region
 
+Since we want to analyze the heterogeneity in pricing by location, we have three choices of grouping variable, `city`, `state`, and `USA_region`.
 
-record `price_date` as a continuous variable counting days from some start date.
+#### City
+
+There are 1642 unique `city` values, and many cities have small sample size (i.e. less than 5 observations). We decide not o use `city` as the grouping variable (see appendix).
+
 
 ```{r}
-#min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
-
-morph_data <- morph_data %>% 
-  mutate(date_diff = as.numeric(
-    as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2013-01-01")
-  ))
+length(unique(morph_data$city))
+length(unique(morph_data$state))
+length(unique(morph_data$usa_region))
 ```
 
 ```{r}
-morph_data %>%
-  ggplot(aes(x=date_diff)) +
-    geom_histogram(
-      aes(y=..density..), 
-      color='black', 
-      linetype='dashed',
-      size=0.5,
-      fill='lightblue', 
-      alpha=0.5,
-      bins=30
-    ) +
-    geom_density(size=0.75, bw=100) +
-    labs(title='Date Distribution') +
-    theme_bw()
+unique(morph_data$state)
 ```
 
+#### State
 
-
-### year & quarter vs.log(ppm)
-
-```{r,fig.width=10, fig.height=3.5}
-# t_year <- morph_data %>% 
-#   group_by(year) %>% 
-#   summarize(n = n()) %>% 
-#   tableGrob()
-
-yearplot <- morph_data %>%
-  ggplot(aes(x = year,y = log(ppm))) +
-  geom_boxplot() +
-  labs(x='Year') +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
-# t_quarter <- morph_data %>% 
-#   group_by(quarter) %>% 
-#   summarize(n = n()) %>% 
-#   tableGrob()
-
-quarterplot <- morph_data %>%
-  ggplot(aes(x = quarter,y = log(ppm))) +
-  geom_boxplot() +
-  labs(
-    x='Quarter',
-    y=''
-  )  +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
-# grid.arrange(t_year, yearplot, t_quarter, quarterplot, ncol=2, nrow = 2)
-grid.arrange(yearplot, quarterplot, ncol=2)
-
-# jpeg("EDAplotQuarter.jpg", width = 500)
-# dev.off()
-
-
-# remove low sample size states
-morph_data <- morph_data %>%
-  mutate(Year=as.character(year)) %>%
-  filter(!year %in% c(
-    1969, 2000, 2002, 2005
-  ))
-
-
-
-morph_data %>%
-  ggplot(aes(x = year,y = log(ppm))) +
-  geom_boxplot() +
-  labs(x='Year') +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-```
-
-### bulk_purchase vs.log(ppm)
-
-```{r, fig.width=6, fig.height=3.5}
-morph_data %>%
-  ggplot(aes(x = bulk_purchase,y = log(ppm))) +
-  geom_boxplot() +
-  labs(x='Bulk Purchase') +
-  stat_summary(
-    fun.y=mean, 
-    geom='point',
-    color='red',
-    size=3
-  ) +
-  theme_bw()
-
-```
-
-
-
-
-
-### state vs. log(ppm)
-
-We see that there are 4 states that have a sample size of 1, North Dakota, Vermont, Washington DC, and Wyoming, as well as 1 state that has a sample size of 2, Alaska. Due to the extremely small sample sizes we decided to remove these states form our dataset to avoid computational instability.
+As for state, we examined the sample sizes in each group and decide to out filter Puerto Rico and Vermont, because they have less than 5 observations. 
 
 ```{r}
 state_size <- morph_data %>%
@@ -313,9 +207,9 @@ state_size <- morph_data %>%
   )
 
 state_size %>% 
-  dplyr::select(1:7) %>%
+  dplyr::select(1:5) %>%
   kable(
-    caption = '7 States with Smallest Sample Size',
+    caption = '5 States with Smallest Sample Size',
     align='c', 
     booktabs=TRUE) %>%
   kable_styling(latex_options = c('hold_position'))
@@ -330,6 +224,7 @@ state_size %>%
 #   kable_styling(latex_options = c('hold_position'))
 ```
 
+
 ```{r}
 # remove low sample size states
 morph_data <- morph_data %>%
@@ -337,7 +232,6 @@ morph_data <- morph_data %>%
   filter(!state %in% c(
     'Puerto Rico', 'Vermont'
   ))
-
 ```
 
 
@@ -377,14 +271,13 @@ p4 <- morph_state %>%
 cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
 ```
 
-We observe that the within-state means for states with higher sample sizes in 
-general adhere more closely to the grand mean. It is also evident that the log(ppm) 
-distributions differ little as compared to the within-state variance. This is 
-conducive to the borrowing of information between states.
+Then we inspect the state-level differences closer by plotting the group-level means agains the sample sizes. We observed that the within-state means for states with smaller sample sizes vary a lot, while the within-state means for states with higher sample sizes in general adhere more closely to the grand mean. This is conducive to the borrowing of information between states with a hierarchical model. 
+From the above boxplot of `log(ppm)` against `state`, it is also evident that the `log(ppm)` distributions differ across states. This indicates the potential state-level differences in drug prices. Therefore, we decide to use state as our grouping variable at this stage.
 
 
-### region vs. log(ppm)
+#### Region
 
+From the boxplot we still see
 We also have access to the broader region in which a purchase is made. This 
 could be useful if we wanted to develop a simpler model that still captured 
 variation by purchase location.
@@ -408,6 +301,116 @@ p5 <- morph_state %>%
 
 grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 ```
+
+
+### Date
+
+As for the `price_date`, we noticed some observations are prior to the establishment of StreetRx, which might be wrong inputs. We dropped the observations prior to 2010. For the rest observations, we came up with two ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences (`date_diff`) from that starting date. The second choice is to split this date variable into two components, `year` and `quarter`, so that we can explore the trend of unit drug price over time and the seasonality. Please see the appendix for the distribution `date_diff` and the relationships between `log(ppm)` and `year`, `quarter`.
+
+```{r}
+min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
+```
+
+```{r}
+morph_data %>% group_by(year) %>% summarise(n = n())
+```
+
+```{r}
+# remove data prior to 2010
+morph_data <- morph_data %>%
+  mutate(Year=as.character(year)) %>%
+  filter(!year %in% c(
+    1969, 2000, 2002, 2005
+  ))
+```
+
+
+```{r}
+# date_diff
+morph_data <- morph_data %>% 
+  mutate(date_diff = as.numeric(
+    as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2010-01-01")
+  ))
+```
+
+```{r}
+morph_data %>%
+  ggplot(aes(x=date_diff)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=30
+    ) +
+    geom_density(size=0.75, bw=100) +
+    labs(title='Date Distribution') +
+    theme_bw()
+```
+
+
+
+### year & quarter vs.log(ppm)
+
+
+
+
+
+```{r,fig.width=10, fig.height=3.5}
+
+yearplot <- morph_data %>%
+  ggplot(aes(x = year,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Year') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+
+quarterplot <- morph_data %>%
+  ggplot(aes(x = quarter,y = log(ppm))) +
+  geom_boxplot() +
+  labs(
+    x='Quarter',
+    y=''
+  )  +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+grid.arrange(yearplot, quarterplot, ncol=2)
+```
+
+### bulk_purchase vs.log(ppm)
+
+There is no need to conduct any data cleaning on `bulk_purchase`. And from the boxplot (see appendix), there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
+
+```{r, fig.width=6, fig.height=3.5}
+morph_data %>%
+  ggplot(aes(x = bulk_purchase,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Bulk Purchase') +
+  stat_summary(
+    fun.y=mean, 
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+```
+
+
 
 
 ### source vs. log(ppm)
@@ -513,9 +516,19 @@ morph_data %>%
       bins=10
     ) +
     geom_density(size=0.75, bw=7.5) +
-    labs(title='Date Distribution') +
+    labs(title='mgstr Distribution') +
     theme_bw()
 ```
+
+
+```{r}
+morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) + 
+  geom_point() +
+  geom_smooth() +
+  theme_bw() +
+  facet_wrap('usa_region', scales = "fixed")
+```
+
 
 ```{r}
 morph_data %>% 
@@ -602,39 +615,39 @@ Choose `State` as our grouping variable
 
 
 
-```{r}
-model1 <- lmer(log(ppm) ~  (1|city), data = morph_data) # 
+```{r a}
+model1 <- lmer(log(ppm) ~  (1|city), data = morph_data, REML=F) # 
 
-model2 <- lmer(log(ppm) ~  (1|city) + state, data = morph_data) # 
+model2 <- lmer(log(ppm) ~  (1|city) + state, data = morph_data, REML=F) # 
 anova(model1,model2)
 
-model3 <- lmer(log(ppm) ~  (1|state) + usa_region, data = morph_data) 
+model3 <- lmer(log(ppm) ~  (1|state) + usa_region, data = morph_data, REML=F) 
 
-modela <- lmer(log(ppm) ~  (1|state), data = morph_data) # 
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
 anova(model3,modela)
 
 
 
-modela <- lmer(log(ppm) ~  (1|state), data = morph_data) # 
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
 
 
-modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data) # 
+modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data, REML=F) # 
 
 anova(modela,modelb)
 
 # ===== 
-modelc <- lmer(log(ppm) ~  mgstr2 + bulk_purchase + (1|state), data = morph_data) # 
+modelc <- lmer(log(ppm) ~  mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
 
 anova(modelb,modelc)
 
 
 # ===== 
 
-modeld <- lmer(log(ppm) ~  year + mgstr2 + bulk_purchase + (1|state), data = morph_data)
+modeld <- lmer(log(ppm) ~  year + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
 
-modele <- lmer(log(ppm) ~  quarter + mgstr2 + bulk_purchase + (1|state), data = morph_data) # 
+modele <- lmer(log(ppm) ~  quarter + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
 
-modelf <- lmer(log(ppm) ~ date_diff + mgstr2 + bulk_purchase + (1|state), data = morph_data) 
+modelf <- lmer(log(ppm) ~ date_diff + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) 
 
 anova(modelc,modeld)
 
@@ -644,17 +657,17 @@ anova(modelc,modelf)
 
 
 # ===== 
-modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data) # 
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
 
 anova(modele,modelg) 
 
 # ===== 
 
 # Maybe a little cleaner way to do this
-modelh<- lmer(log(ppm) ~  quarter + primary_reason + mgstr2 + bulk_purchase + (1|state), data = morph_data) 
+modelh<- lmer(log(ppm) ~  quarter + primary_reason + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) 
 
 
-modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data)
+modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
 step(modelAll)
 
 ```
@@ -663,37 +676,37 @@ step(modelAll)
 `modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)`
 
 ```{r}
-modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
 
 
 modelgg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
-                 quarter * bulk_purchase, data = morph_data)
+                 quarter * bulk_purchase, data = morph_data, REML=F)
 
 anova(modelg,modelgg)
 
 modelggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
-                 quarter * mgstr2, data = morph_data)
+                 quarter * mgstr2, data = morph_data, REML=F)
 
 anova(modelg,modelggg)
 
 modelgggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
-                 bulk_purchase * mgstr2, data = morph_data)
+                 bulk_purchase * mgstr2, data = morph_data, REML=F)
 
 anova(modelg,modelgggg)
 
 modelggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
-                 quarter * source, data = morph_data)
+                 quarter * source, data = morph_data , REML=F)
 
 anova(modelg,modelggggg)
 
 modelgggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
-                 bulk_purchase * source, data = morph_data)
+                 bulk_purchase * source, data = morph_data, REML=F)
 
 anova(modelg,modelgggggg)
 
 
 modelggggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
-                 source * mgstr2, data = morph_data)
+                 source * mgstr2, data = morph_data, REML=F)
 
 anova(modelg,modelggggggg)
 
@@ -702,7 +715,7 @@ anova(modelg,modelggggggg)
 
 
 ```{r}
-modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data)
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
 
 ```
 
@@ -862,7 +875,7 @@ Remove the data point with the lowest residual.
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
 
-model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2)
+model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2, REML=F)
 
 
 view_coef(model_g2)
@@ -916,7 +929,7 @@ morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
 
 
-model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3)
+model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3, REML=F)
 
 view_coef(model_g3)
 view_params(model_g3)
