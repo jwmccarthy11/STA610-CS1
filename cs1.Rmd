@@ -762,11 +762,13 @@ plot_qq <- function(model) {
   )
   
   p <- ggplot(df, aes(sample=res)) + 
-    stat_qq() + 
+    stat_qq(
+      size=0.75
+    ) + 
     stat_qq_line(
       linetype='dashed',
       color='red',
-      size=1
+      size=0.5
     ) +
     labs(
       title='Normal QQ for Residuals',
@@ -782,11 +784,13 @@ plot_ranef_qq <- function(model) {
   )
   
   p <- ggplot(df, aes(sample=res)) + 
-    stat_qq() + 
+    stat_qq(
+      size=0.5
+    ) + 
     stat_qq_line(
       linetype='dashed',
       color='red',
-      size=1
+      size=0.5
     ) +
     labs(
       title='Normal QQ for Random Effects',
@@ -803,7 +807,9 @@ plot_res_fit <- function(model) {
   )
   
   p <- ggplot(df, aes(x=fit, y=res)) +
-    geom_point() +
+    geom_point(
+      size=0.75
+    ) +
     geom_hline(
       yintercept=0,
       linetype="dashed"
@@ -824,7 +830,9 @@ plot_scale_loc <- function(model) {
   )
   
   p <- ggplot(df, aes(x=fit, y=res)) +
-    geom_point() +
+    geom_point(
+      size=0.75
+    ) +
     geom_smooth() +
     labs(
       title='Scale-Location',
@@ -859,7 +867,9 @@ plot_cooks_distance <- function(model1){
   infindiv <- cooks_distance > cutline
 
   p <- ggplot(data=NULL, aes(x=1:length(unique(data$state)), y=cooks_distance)) +
-    geom_point() +
+    geom_point(
+      size=0.75
+    ) +
     geom_hline(
       yintercept=cutline,
       linetype='dashed',
@@ -887,7 +897,7 @@ model_diag <- function(model) {
 
 ```
 
-```{r, fig.height=7, fig.width=8, echo=FALSE}
+```{r, fig.height=4, fig.width=10, echo=FALSE}
 # view_coef(modelg)
 # view_params(modelg)
 model_diag(modelg)
@@ -902,7 +912,7 @@ We tried to remove the data point with the lowest residual and the influential g
 
 
 
-```{r, fig.height=7, fig.width=8, echo=FALSE}
+```{r, fig.height=4, fig.width=10, echo=FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
