@@ -887,7 +887,7 @@ model_diag <- function(model) {
 
 ```
 
-```{r, fig.height=4, fig.width=10, echo=FALSE}
+```{r, fig.height=7, fig.width=8, echo=FALSE}
 # view_coef(modelg)
 # view_params(modelg)
 model_diag(modelg)
@@ -902,7 +902,7 @@ We tried to remove the data point with the lowest residual and the influential g
 
 
 
-```{r, fig.height=4, fig.width=10, echo=FALSE}
+```{r, fig.height=7, fig.width=8, echo=FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
@@ -992,8 +992,10 @@ view_params <- function(model) {
   
   kable(params,
         col.names = c('$\\tau^2$', '$\\sigma^2$'),
-        digits = 4) %>% 
-    kable_classic(full_width=FALSE)
+        digits = 4,
+        format = 'latex',
+        escape = FALSE) %>% 
+  kable_classic(full_width=FALSE)
 }
 ```
 
