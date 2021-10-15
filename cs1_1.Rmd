@@ -689,25 +689,31 @@ step(modelAll)
 ```
 
 ```{r}
-model <- c("log(ppm) ~  (1|state)",
-           "log(ppm) ~  (1|state) + mgstr2",
-           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase",
-           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + year",
-           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + quarter",
-           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + date_diff",
-           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + quarter + source",
-           "log(ppm) ~  (1|state) + mgstr2 + bulk_purchase + quarter + source + primary_reason")
+round(anova(modelc,modele)$`Pr(>Chisq)`[2], 4)
+```
+
+```{r}
+model <- c("(1|state)",
+           "(1|state) + mgstr2",
+           "(1|state) + mgstr2 + bulk_purchase",
+           "(1|state) + mgstr2 + bulk_purchase + year",
+           "(1|state) + mgstr2 + bulk_purchase + quarter",
+           "(1|state) + mgstr2 + bulk_purchase + date_diff",
+           "(1|state) + mgstr2 + bulk_purchase + quarter + source",
+           "(1|state) + mgstr2 + bulk_purchase + quarter + source + primary_reason")
 LRT <- c("",
-         anova(modela,modelb)$`Pr(>Chisq)`[2],
-         anova(modelb,modelc)$`Pr(>Chisq)`[2],
-         anova(modelc,modeld)$`Pr(>Chisq)`[2],
-         anova(modelc,modele)$`Pr(>Chisq)`[2],
-         anova(modelc,modelf)$`Pr(>Chisq)`[2],
-         anova(modele,modelg)$`Pr(>Chisq)`[2],
-         anova(modelg,modelh)$`Pr(>Chisq)`[2])
+         round(anova(modela,modelb)$`Pr(>Chisq)`[2],4),
+         round(anova(modelb,modelc)$`Pr(>Chisq)`[2],4),
+         round(anova(modelc,modeld)$`Pr(>Chisq)`[2],4),
+         round(anova(modelc,modele)$`Pr(>Chisq)`[2],4),
+         round(anova(modelc,modelf)$`Pr(>Chisq)`[2],4),
+         round(anova(modele,modelg)$`Pr(>Chisq)`[2],4),
+         round(anova(modelg,modelh)$`Pr(>Chisq)`[2],4))
 BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
   kable()
+
+
 ```
 
 
@@ -775,34 +781,9 @@ The response variable and predictors are defined as:
  
  - $S_{ij}$: Source of information (report purchases they did not personally make)
 
-```{r}
-# view coefficient estimates
-view_coef <- function(model) {
-  summary(model)$coefficients %>%
-    as.data.frame() %>%
-    mutate(`exp(Estimate)`=exp(Estimate)) %>%
-    relocate(`exp(Estimate)`, .after=Estimate) %>%
-    kable() %>%
-    kable_classic(full_width=FALSE)
-}
 
+### Model Diagnostics
 
-
-# view parameter estimates
-view_params <- function(model) {
-  params <- summary(model)$varcor %>%
-    as.data.frame() %>%
-    dplyr::select(vcov)
-  
-  rownames(params) <- c('$\\tau^2$', '$\\sigma^2$')
-  colnames(params) <- c('Estimate')
-  kable(params) %>% 
-    kable_classic(full_width=FALSE)
-}
-
-
-
-```
 
 ```{r, fig.width=10, fig.height=10}
 plot_qq <- function(model) {
@@ -898,26 +879,59 @@ plot_res_dens <- function(model) {
   
   return(p)
 }
-  
+
+
+plot_cooks_distance <- function(model1){
+  model_inf<- influence(model1, group = "state")
+  data <- model.frame(model1)
+  cooks_distance <- cooks.distance(model_inf)
+  cutline <- 4 / length(unique(data$state))
+  infindiv <- cooks_distance > cutline
+
+  p <- ggplot(data=NULL, aes(x=1:length(unique(data$state)), y=cooks_distance)) +
+    geom_point() +
+    geom_hline(
+      yintercept=cutline,
+      linetype='dashed',
+      color='red',
+      size=0.75
+    ) +
+    labs(
+      x='Index',
+      y='Cooks Distance'
+    ) +
+    theme_bw()
+  return(p)
+}
+
 model_diag <- function(model) {
   p1 <- plot_res_fit(model)
   p2 <- plot_qq(model)
   p3 <- plot_ranef_qq(model)
-  p4 <- plot_res_dens(model)
+  p4 <- plot_cooks_distance(model)
   
   cowplot::plot_grid(p1, p2, p3, p4, nrow=2)
 }
+
+
+
 ```
 
 ```{r, fig.heigh=10, fig.width=10}
-view_coef(modelg)
-view_params(modelg)
+# view_coef(modelg)
+# view_params(modelg)
 model_diag(modelg)
 ```
 
+ - `Residual vs. Fitted plot`: The residuals spread equally around the horizontal line, indicating there is no non-linear relationships. 
+ - `Normal QQ plot for residuals`: The normality assumption is slightly met since our residuals adhere around the diagonal line but have heavy tails on both sides. We also have one data point deviate severely from the diagonal line. 
+ - `Normal QQ plot for Random Effects`: We can accept the random effects are normally distributed. But we still have three outliers. 
+ - `Cook's Distance`: We have 3 highly influential states (Florida, Pennsylvania, and California) whose Cook's distance exceeds the $\frac{4}{n}$ cutoff, where n denotes the number of states.
+
+To address the violated assumptions, we tried to remove the data point with the lowest residual and the influential groups. However, this did not improve the normality of residuals very much (see appendix). Moreover, the influential states have considerable sample size (1382 observations). Therefore, we decide only drop the individual level outlier but keep all the groups.
 
 
-Remove the data point with the lowest residual.
+
 
 ```{r, fig.heigh=10, fig.width=10}
 # remove lowest residual data point
@@ -927,13 +941,12 @@ morph_data2 <- morph_data[-which.min(resid(modelg)),]
 model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2, REML=F)
 
 
-view_coef(model_g2)
-view_params(model_g2)
+# view_coef(model_g2)
+# view_params(model_g2)
 model_diag(model_g2)
 ```
 
 
-# Influence
 
 ```{r}
 model_g2_inf<- influence(model_g2, group = "state")
@@ -958,46 +971,102 @@ ggplot(data=NULL, aes(x=1:length(unique(morph_data2$state)), y=cooks_distance)) 
   ) +
   theme_bw()
 
-# jpeg("CooksDistance.jpg", width = 600)
-# dev.off()
 
 data.frame(
-  cooks_distance,
+  rownames(model_g2_inf$`fixed.effects[-state]`),
+  round(cooks_distance, 4),
   infindiv
 ) %>% 
   filter(infindiv == TRUE) %>%
-  dplyr::select(2) %>%
-  rename(`Cook's Distance`=1) %>%
+  dplyr::select(1:2) %>%
+  rename(`State`=1, `Cook's Distance`=2) %>%
   kable() %>%
   kable_classic(full_width=FALSE)
 ```
 
 ```{r, fig.heigh=10, fig.width=10}
-# remove two most influential states
+# remove three most influential states
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
 
 
 model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3, REML=F)
 
-view_coef(model_g3)
-view_params(model_g3)
 model_diag(model_g3)
 ```
 
-Does not change much, but the sample size decreases sharply -> decide not to remove these groups.
+# Conclusion
 
-
-
+### Fixed Effects
 
 ```{r}
-# view intercept estimates and intervals
-dotplot(ranef(model_g2, condVar = TRUE))
-ranef(model_g2, condVar = TRUE) %>% kable()
+# view coefficient estimates
+view_coef <- function(model) {
+  summary(model)$coefficients %>%
+    as.data.frame() %>%
+    mutate(`exp(Estimate)`=exp(Estimate)) %>%
+    relocate(`exp(Estimate)`, .after=Estimate) %>%
+    kable(digits = 4) %>%
+    kable_classic(full_width=FALSE)
+}
+
+
+
+# view parameter estimates
+view_params <- function(model) {
+  params <- summary(model)$varcor %>%
+    as.data.frame() %>%
+    dplyr::select(vcov)
+  
+  rownames(params) <- c('$\\tau^2$', '$\\sigma^2$')
+  colnames(params) <- c('Estimate')
+  kable(params, digits = 4) %>% 
+    kable_classic(full_width=FALSE)
+}
+
 ```
 
 
+```{r}
+view_coef(model_g2)
+```
+
+```{r}
+1-0.9609
+```
+
+ - Quarter (baseline: Quarter1): Compared with quarter 1, holding all other predictors unchanged, purchasing the morphine in quarter 2, the per milligram price of the drug will increase by a multiplicative effect of $e^{0.0853} = 1.0891$ (about 8.91%). Similarly, if the drug is purchased in quarter 3 or quarter 4, the drug price will increase by 8.77% and 8.81% respectively.
+ 
+ - Source (baseline: Blank): Compared with unkown source, holding all other predictors unchanged, the per milligram drug price heard from other person will increase by a multiplicative effect of $e^{0.0633} = 1.0653$ (about 6.53%). Similarly, the price information obtained from the internet, internet pharmacy, or personal purchase will decrease by 0.41%, 27.58%, and 3.91% respectively.
+ 
+ - Dosage Strength (baseline: Low): Compared with low dosage strength, holding all other predictors unchanged, the per milligram price of morphine will decrease by a multiplicative effect of $e^{-0.3816} = 0.6827$ (about 31.73%) if it has medium dosage strength. Similarly, if the dosage strength is medium high or high, the drug price will decrease by 50.34% and 67.36% respectively.
+ 
+ - Bulk Purchase (baseline: Not bulk purchase): Compared with non-bulk purchase, holding all other predictors unchanged, the unit price of morphine will decrease by a multiplicative effect of $e^{0.1141} = 0.8922$ (about 10.78%).
 
 
+### Random Effects
 
+```{r}
+view_params(model_g2)
+```
+
+The estimated across-state variance is $\hat{\tau^2} = 0.0161$, which also describes the variation attributed to the random intercept. The estimated within-state variance is $\hat{\sigma^2} = 0.7772$, which describes the unexplained variation. The estimated interclass correlation is $\frac{\hat{\tau^2}}{\hat{\tau^2} + \hat{\sigma^2}} \approx 0.02$. Therefore, we have little correlation within the same state.
+
+
+```{r, fig.heigh=5, fig.width=8}
+# view intercept estimates and intervals
+dotplot(ranef(model_g2, condVar = TRUE))
+```
+
+From the random intercepts plot, we can also see that different states have different base per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk.
+
+```{r}
+ranef(model_g2, condVar = TRUE) %>%
+  as.data.frame() %>%
+  arrange(desc(condval)) %>%
+  mutate(`exp(condval)` = exp(condval)) %>%
+  kable()
+```
+
+# Limitation
 
