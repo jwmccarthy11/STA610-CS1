@@ -7,6 +7,9 @@ author:
   -  Qinzhe Wang (Coordinator & Checker)   
   
 date: "`r format(Sys.time(), '%d %B, %Y')`"
+header-includes:
+  - \usepackage{wrapfig}
+  - \usepackage{lipsum}
 output: 
   pdf_document:
     keep_tex: true
@@ -57,7 +60,7 @@ Our drug of interest is Morphine which is used to “relieve moderate to severe 
 
 
 
-# EDA
+# Data Cleaning & EDA
 
 ### Missing Values
 
@@ -135,8 +138,10 @@ p1 <- morph_data %>%
       bins=20
     ) +
     geom_density(size=0.75, bw=0.3) +
-    labs(title='Distribution of morphine ppm') +
-    theme_bw()
+    ggtitle("Distribution of morphine ppm") +
+    theme(plot.title = element_text(hjust = 0.5))
+
+
 
 # log-transformed density
 p2 <- morph_data %>%
@@ -151,9 +156,9 @@ p2 <- morph_data %>%
       bins=20
     ) +
     geom_density(size=0.75, bw=0.3) +
-    labs(title='Distribution of morphine log(ppm)') +
     xlim(-7, 3) +
-    theme_bw()
+    ggtitle("Distribution of morphine log(ppm)") +
+    theme(plot.title = element_text(hjust = 0.5))
 
 grid.arrange(p1, p2, ncol=2)
 
@@ -165,7 +170,7 @@ Whether we fit a hierarchical model or linear regression, the response variable 
 
 
 
-### Grouping Variable: city, state, and USA_region
+### Grouping Variable: city, state, and region
 
 Since we want to analyze the heterogeneity in pricing by location, we have three choices of grouping variables, `city`, `state`, and `USA_region`.
 
@@ -217,7 +222,7 @@ morph_data <- morph_data %>%
 ```
 
 
-```{r, fig.width=10, fig.height=3, echo=FALSE}
+```{r, fig.width=10, fig.height=3, echo=FALSE, message=FALSE}
 morph_state <- morph_data %>%
   filter(state %in% state.name) %>%
   mutate(state_abv=state.abb[match(state,state.name)])
@@ -237,7 +242,8 @@ p3 <- morph_state %>%
     ) +
     geom_point() +
     labs(x='sample size', y='mean log(ppm)') +
-    theme_bw()
+    ggtitle("Group mean vs. sample size") +
+    theme(plot.title = element_text(hjust = 0.5))
 
 
 p4 <- morph_state %>%
@@ -247,7 +253,8 @@ p4 <- morph_state %>%
       alpha=0.5    
     ) +
     scale_x_discrete(guide=guide_axis(angle = 90)) +
-    theme_bw() +
+    ggtitle("Boxplot of log(pmm) across states") +
+    theme(plot.title = element_text(hjust = 0.5)) +
     labs(x='state')
 
 cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
@@ -276,7 +283,8 @@ p5 <- morph_state %>%
       color='red',
       size=3
     ) +
-    theme_bw()
+    ggtitle("Boxplot of log(pmm) across regions") +
+    theme(plot.title = element_text(hjust = 0.5)) 
 
 grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 ```
@@ -363,7 +371,9 @@ yearplot <- morph_data %>%
     color='red',
     size=3
   ) +
-  theme_bw()
+  ggtitle("log(pmm) vs. years") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
 
 
 quarterplot <- morph_data %>%
@@ -379,7 +389,8 @@ quarterplot <- morph_data %>%
     color='red',
     size=3
   ) +
-  theme_bw()
+  ggtitle("log(pmm) vs. quarters") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 grid.arrange(yearplot, quarterplot, ncol=2)
 ```
@@ -398,7 +409,8 @@ plot1 <- morph_data %>%
     color='red',
     size=3
   ) +
-  theme_bw()
+  ggtitle("log(pmm) vs. bulk purchase") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 
 # unique(morph_data$source)
@@ -431,12 +443,9 @@ plot2 <- morph_data %>%
     color='red',
     size=2
   ) +
-  theme_bw()
+  ggtitle("log(pmm) vs. source") +
+  theme(plot.title = element_text(hjust = 0.5))
 
-
-# morph_data %>%
-#   group_by(source) %>%
-#   summarize(n =n())
 
 grid.arrange(plot1, plot2, ncol =2)
 
@@ -475,6 +484,7 @@ morph_data %>%
     ) +
     geom_density(size=0.75, bw=7.5) +
     labs(title='mgstr Distribution') +
+  labs(title='log(pmm) vs. sources') +
     theme_bw()
 ```
 
@@ -531,7 +541,8 @@ plot1 <- morph_data %>%
     color='red',
     size=3
   ) +
-  theme_bw()
+  ggtitle("log(pmm) vs. strength") +
+  theme(plot.title = element_text(hjust = 0.5))
 
 
 plot2 <- morph_data %>%
@@ -545,9 +556,11 @@ plot2 <- morph_data %>%
       color='red',
       size=3
     ) +
-  theme_bw()
+  ggtitle("log(pmm) vs. reasons") +
+  theme(plot.title = element_text(hjust = 0.5))
 
-grid.arrange(plot1, plot2, ncol =2)
+grid.arrange(arrangeGrob(plot1, ncol=1, nrow=1),
+             arrangeGrob(plot2, ncol=1, nrow=1), widths=c(1,2))
 ```
 
 From the scatter plot of `log(ppm)` against `mgstr`, there is a slight trend that the larger the dosage strength, the smaller the per milligram price. We have also noticed that `mgstr` only takes 16 discrete values. Therefore, we decided to transform it into 4 levels ("low", "medium", "medium high", and "high") based on the 0.25, 0.5, and 0.75 quantiles of `mgstr`. From the boxplot, the trend that the `log(ppm)` values decrease as the dosage strength increases is more clear when using these new levels.
@@ -578,7 +591,7 @@ aic_score <- sapply(c(mod_1, mod_2, mod_3), AIC)
 bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
 
 data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
-  kable()
+  kable(caption = "AIC and BIC for different grouping variables")
  
 ```
 
@@ -681,7 +694,7 @@ LRT <- c("",
          round(anova(modelg,modelh)$`Pr(>Chisq)`[2],4))
 BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
-  kable() %>%
+  kable(caption = "Forward model selection") %>%
     kable_styling(latex_options = c("hold_position","striped"))
 
 
@@ -771,13 +784,16 @@ plot_qq <- function(model) {
       size=0.5
     ) +
     labs(
-      title='Normal QQ for Residuals',
       x='Theoretical Quantiles',
       y='Standardized Residuals'
-    ) + theme_bw()
+    ) + 
+    ggtitle("Normal QQ for Residuals") +
+    theme(plot.title = element_text(hjust = 0.5))
   
   return(p)
 }
+
+
 plot_ranef_qq <- function(model) {
   df <- data.frame(
     res=ranef(model)[[1]][[1]]
@@ -793,13 +809,15 @@ plot_ranef_qq <- function(model) {
       size=0.5
     ) +
     labs(
-      title='Normal QQ for Random Effects',
       x='Theoretical Quantiles',
       y='State Intercept'
-    ) + theme_bw()
+    ) + 
+    ggtitle("Normal QQ for Random Effects") +
+  theme(plot.title = element_text(hjust = 0.5))
   
   return(p)
 }
+
 plot_res_fit <- function(model) {
   df <- data.frame(
     res=residuals(model),
@@ -816,13 +834,15 @@ plot_res_fit <- function(model) {
     ) +
     geom_smooth() +
     labs(
-      title='Residuals vs. Fitted',
       x='Fitted',
       y='Residuals'
-    ) + theme_bw()
+    ) + 
+    ggtitle("Residuals vs. Fitted") +
+  theme(plot.title = element_text(hjust = 0.5))
   
   return(p)
 }
+
 plot_scale_loc <- function(model) {
   df <- data.frame(
     res=sqrt(residuals(model, scaled=TRUE)),
@@ -835,13 +855,15 @@ plot_scale_loc <- function(model) {
     ) +
     geom_smooth() +
     labs(
-      title='Scale-Location',
       x='Fitted',
       y=expression(sqrt('Standardized Residuals'))
-    ) + theme_bw()
+    ) + 
+    ggtitle("Scale-Location") +
+  theme(plot.title = element_text(hjust = 0.5))
   
   return(p)
 }
+
 plot_res_dens <- function(model) {
   df <- data.frame(
     res=residuals(model)
@@ -850,14 +872,14 @@ plot_res_dens <- function(model) {
   p <- ggplot(df, aes(x=res)) +
     geom_density() +
     labs(
-      title='Residuals Density',
       x='Residuals',
       y='Density'
-    ) + theme_bw()
+    ) +
+    ggtitle("Residuals Density") +
+  theme(plot.title = element_text(hjust = 0.5))
   
   return(p)
 }
-
 
 plot_cooks_distance <- function(model1){
   model_inf<- influence(model1, group = "state")
@@ -880,7 +902,8 @@ plot_cooks_distance <- function(model1){
       x='Index',
       y='Cooks Distance'
     ) +
-    theme_bw()
+  ggtitle("Cook's Distance for States") +
+  theme(plot.title = element_text(hjust = 0.5))
   return(p)
 }
 
@@ -897,9 +920,7 @@ model_diag <- function(model) {
 
 ```
 
-```{r, fig.height=4, fig.width=10, echo=FALSE}
-# view_coef(modelg)
-# view_params(modelg)
+```{r, fig.height=4, fig.width=7, echo=FALSE}
 model_diag(modelg)
 ```
 
@@ -912,7 +933,7 @@ We tried to remove the data point with the lowest residual and the influential g
 
 
 
-```{r, fig.height=4, fig.width=10, echo=FALSE}
+```{r, fig.height=4, fig.width=7, echo=FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
@@ -963,7 +984,7 @@ data.frame(
   kable_classic(full_width=FALSE)
 ```
 
-```{r, fig.height=10, fig.width=10, echo=FALSE, eval =FALSE}
+```{r, fig.height=4, fig.width=7, echo=FALSE, eval =FALSE}
 # remove three most influential states
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
@@ -988,7 +1009,8 @@ view_coef <- function(model) {
     as.data.frame() %>%
     mutate(`exp(Estimate)`=exp(Estimate)) %>%
     relocate(`exp(Estimate)`, .after=Estimate) %>%
-    kable(digits = 4) %>%
+    kable(caption = "Estimates of fixed effects",
+      digits = 4) %>%
     kable_classic(full_width=FALSE)
 }
 
@@ -1001,6 +1023,7 @@ view_params <- function(model) {
   rownames(params) <- c('Estimate')
   
   kable(params,
+        caption = "Estimates of random effects",
         col.names = c('$\\tau^2$', '$\\sigma^2$'),
         digits = 4,
         format = 'latex',
@@ -1036,10 +1059,24 @@ view_params(model_g2) %>%
 The estimated across-state variance is $\hat{\tau^2} = 0.0161$, which also describes the variation attributed to the random intercept. The estimated within-state variance is $\hat{\sigma^2} = 0.7772$, which describes the unexplained variation. The estimated interclass correlation is $\frac{\hat{\tau^2}}{\hat{\tau^2} + \hat{\sigma^2}} \approx 0.02$. Therefore, we have little correlation within the same state.
 
 
-```{r, fig.height=7, fig.width=8, echo=FALSE, message =FALSE}
+```{r, fig.height=7.5, fig.width=9, echo=FALSE, message =FALSE,eval=FALSE}
 # view intercept estimates and intervals
+
+png("intercept_interval.png", width =600)
+
 dotplot(ranef(model_g2, condVar = TRUE))$state
+
+dev.off()
 ```
+
+\begin{wrapfigure}{r}{0.72\textwidth}
+ \begin{center}
+    \includegraphics[width=0.9\linewidth]{intercept_interval.png}
+\end{center}
+\end{wrapfigure}
+
+
+
 
 From the random intercepts plot, we can see that states have different bases per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk
 
