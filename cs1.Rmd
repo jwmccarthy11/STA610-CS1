@@ -53,7 +53,7 @@ load('streetrx.RData')
 
 Prescription opioid abuse plays an essential role in public health issues. The price of prescription opioids indicates the supply-demand relationship of drugs. This study case aims to explore the relationship between drugs’ unit price and other factors. More specifically, our group’s interest is to explore the factors related to the cost per milligram and the heterogeneity in the region. The dataset is provided by StreetRx, a reporting tool for people at large to anonymously report the price they paid or heard for diverted prescription drugs.
 
-Our drug interest is Morphine. Morphine is used to “relieve moderate to severe pain and maybe habit-forming,” especially with prolonged use (MedlinePlus). 
+Our drug interest is Morphine. Morphine is used to “relieve moderate to severe pain and may be habit-forming,” especially with prolonged use (MedlinePlus). 
 
 
 
@@ -113,7 +113,7 @@ sum(morph_data$ppm <=0)
 
 The dataset (Morphine) contains 9,268 observations with 13 variables. There are 13,443 empty cells (both the missing values and the blank). To maintain the statistical power and avoid bias, our group decided to recode the empty cells and "0 Reporter did not answer this question" in `Primary_Reason` (5061 in total)  as "8 Prefer not to answer" and recode the empty cells in `source` (3942 in total) as "Blank" because of the high missing rates. Then, we removed other rows with missing values.
 
-In addition, we think there is no reason that the price per milligram can be a non-positive value or values greater than 10 (may because some people input the total price by mistake). The number of the observations we have is 5,582 now.
+In addition, we think there is no reason that the price per milligram can be a non-positive value or values greater than 10 (may because some people input the total price by mistake). The number of observations we have is 5,582 now.
 
 
 ### Response Variable: Price per milligram 
@@ -162,17 +162,17 @@ grid.arrange(p1, p2, ncol=2)
 
 
 Whether we fit a hierarchical model or linear regression, the response variable should be normally distributed. From the histogram on the left, the distribution of `ppm` is clearly right-skewed. Since `ppm` is strictly non-negative, a log transformation may be appropriate. The distribution of 
-`log(ppm)` is given above, and appears closer to the desired normal.
+`log(ppm)` is given above and appears closer to the desired normal.
 
 
 
 ### Grouping Variable: city, state, and USA_region
 
-Since we want to analyze the heterogeneity in pricing by location, we have three choices of grouping variable, `city`, `state`, and `USA_region`.
+Since we want to analyze the heterogeneity in pricing by location, we have three choices of grouping variables, `city`, `state`, and `USA_region`.
 
 **City**
 
-There are 1642 unique `city` values, and many cities have small sample size (i.e. less than 5 observations). We decide not o use `city` as the grouping variable (see appendix).
+There are 1642 unique `city` values, and many cities have small sample size (i.e. less than 5 observations). We decide not to use `city` as the grouping variable (see appendix).
 
 
 ```{r, echo=FALSE, eval =FALSE}
@@ -184,7 +184,8 @@ length(unique(morph_data$usa_region))
 
 **State**
 
-As for state, we examined the sample sizes in each group and decide to out filter Puerto Rico and Vermont, because they have less than 5 observations. 
+
+As for the state, we examined the sample sizes in each group and decided to out filter Puerto Rico and Vermont because they have less than 5 observations. 
 
 ```{r, echo=FALSE, eval = FALSE}
 state_size <- morph_data %>%
@@ -261,6 +262,12 @@ From the above boxplot of `log(ppm)` against `state`, it is also evident that th
 
 From the boxplot we still see the `log(ppm)` distributions differ slightly across regions, though not that much as across states. We may also consider using region as the grouping variable.
 
+
+**Region**
+
+
+We still see the `log(ppm)` distributions differ slightly across regions from the boxplot, though not that much as across states. We may also consider using region as the grouping variable. 
+
 ```{r, fig.height=3, fig.width=10, echo=FALSE}
 t1 <- morph_state %>%
   group_by(usa_region) %>%
@@ -282,11 +289,12 @@ grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
 ```
 
 
+
 ### Date (price_date)
 
-As for the `price_date`, we noticed some observations are prior to the establishment of StreetRx, which might be wrong inputs. We dropped the observations prior to 2010. For the rest observations, we came up with two ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences (`date_diff`) from that starting date. The second choice is to split this date variable into two components, `year` and `quarter`, so that we can explore the trend of unit drug price over time and the seasonality. 
+As for the `price_date`, we noticed some observations are prior to the establishment of StreetRx, which might be wrong inputs. We dropped the observations before 2010. For the rest observations, we came up with two ways of data cleaning on the date variable. The first choice is to choose a starting date and convert the feature as the date differences (`date_diff`) from that starting date. The second choice is to split this date variable into two components, `year` and `quarter` to explore the trend of unit drug price over time and the seasonality. 
 
-Our visualizations suggested there is no clear trend that the log value of per milligram price of morphine varies along with `date_diff`. However, for different `year` and `quarter`, the `log(ppm)` value varies a little bit (see appendix). 
+Our visualizations suggested there is no clear trend that the log value of per milligram price of morphine varies along with `date_diff`. However, for different `year` and `quarter`, the `log(ppm)` value varies slightly (see appendix). 
 
 
 
@@ -444,8 +452,7 @@ grid.arrange(plot1, plot2, ncol =2)
 
 There is no need to conduct any data cleaning on `bulk_purchase`. And from the boxplot (see appendix), there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
 
-For the feature `source`, we have recoded the missing value as "Blank" and the name of websites as "Internet". And we dropped the only observation whose `source` is "Drug Forum". From the boxplot, we see the `log(ppm)` value varies among different sources (see appendix).
-
+For the feature `source`, we have recoded the missing value as "Blank" and the name of websites as "Internet". And we dropped the only observation whose `source` is "Drug Forum". The boxplot shows that the `log(ppm)` value varies among different sources (see appendix).
 
 ### Dosage Strength & Primary Reason
 
@@ -550,17 +557,17 @@ plot2 <- morph_data %>%
 grid.arrange(plot1, plot2, ncol =2)
 ```
 
-From the scatter plot of `log(ppm)` against `mgstr`, there is a slight trend that the larger the dosage strength, the smaller the per milligram price. We have also noticed that `mgstr` only takes 16 discrete values. Therefore, we consider to label it into 4 levels ("low", "medium", "medium high", and "high") based on the 0.25, 0.5, and 0.75 quantiles of `mgstr`.From the boxplot, we see a more clear trend that the `log(ppm)` values decrease as the dosage strength increase.
+From the scatter plot of `log(ppm)` against `mgstr`, there is a slight trend that the larger the dosage strength, the smaller the per milligram price. We have also noticed that `mgstr` only takes 16 discrete values. Therefore, we consider to label it into 4 levels ("low", "medium", "medium high", and "high") based on the 0.25, 0.5, and 0.75 quantiles of `mgstr`.From the boxplot, we see a clearer trend that the `log(ppm)` values decrease as the dosage strength increases.
 
 
-For `primary_reason`, we have converted the empty cells and "0 Reporter did not answer this question" to "8 Prefer not to answer". The `log(ppm)` value varies a lot among different reasons for purchasing the morphine (see appendix).
+For `primary_reason`, we have converted the empty cells and "0 Reporter did not answer this question" to "8 Prefer not to answer". The `log(ppm)` value varies among different reasons for purchasing morphine (see appendix).
 
 
 # Model
 
 ### Initial Model & Model Selection
 
-Our research question is to investigate factors related to the per milligram price of morphine and explore heterogeneity in pricing by location. As discussed in the EDA part, we do not have enough data to estimate the effects in city-level. Meanwhile, the drug prices do not seem to change significantly across regions. Thus, state is a more preferable choice of accounting for location. Since many states have relatively small sample sizes, a hierarchical model allows us to borrow information across states.
+Our research question is to investigate factors related to the per milligram price of morphine and explore heterogeneity in pricing by location. As discussed in the EDA part, we do not have enough data to estimate the effects at the city level. Meanwhile, the drug prices do not seem to change significantly across regions. Thus, the state is a preferable choice of accounting for location. Since many states have relatively small sample sizes, a hierarchical model allows us to borrow information across states.
 
 Comparing three full models with different grouping variables, the AIC and BIC score also suggest choosing `state` as the group-level variable.
 
@@ -601,15 +608,14 @@ aic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), AIC)
 bic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), BIC)
 
 data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
-  kable()
+  kable() %>%
+    kable_styling(latex_options = c("hold_position","striped"))
  
 ```
 
-Our baseline model incorporates only the state-level random intercepts. For other individual level predictors, we add one variable to the model each time, and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The **LRT** is designed for nested models. While the BIC score considers both the likelihood and the model complexity, and gives a more general sense of model performance. The table below displays the results of model selection.
+Our baseline model incorporates only the state-level random intercepts. For other individual-level predictors, we add one variable to the model each time and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The **LRT** is designed for nested models. While the BIC score considers both the likelihood and the model complexity and gives a more general sense of model performance. The table below displays the results of model selection.
 
-Our final model incorporates the grouping variable `state` and the individual level predictors `mgstr` (recoded as 4 levels), `bulk_purchase`, `quarter`, `source`. We also tried to using the full model as a starting point, and did stepwise backward elimination. The results agrees with our final model (See appendix).
-
-
+Our final model incorporates the grouping variable `state` and the individual level predictors `mgstr` (recoded as 4 levels), `bulk_purchase`, `quarter`, `source`. We also tried to use the full model as a starting point and did stepwise backward elimination. The result agrees with our final model (See appendix).
 
 
 ```{r, echo=FALSE, results='hide'}
@@ -682,7 +688,8 @@ LRT <- c("",
          round(anova(modelg,modelh)$`Pr(>Chisq)`[2],4))
 BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
-  kable()
+  kable() %>%
+    kable_styling(latex_options = c("hold_position","striped"))
 
 
 ```
@@ -735,14 +742,14 @@ modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state)
 ```
 
 
-### final model
+### Final Model
 
 Our final model is 
 $$log(y_{ij}) = \beta_0 + b_{0j} + \beta_1 M_{ij} + \beta_2 B_{ij} + \beta_3 Q_{ij} + \beta_4 S_{ij} + \epsilon_{ij}$$
 $$b_{0j} \sim \mathcal{N}(0, \tau^2) \perp \epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)$$
 The response variable and predictors are defined as:
 
- - $y_ij$: Per miligram price of morphine for individual i in state j
+ - $y_ij$: Per milligram price of morphine for individual i in state j
  
  - $M_{ij}$: Dosage strength in mg of the units purchased, labeled into 4 levels
  
@@ -893,17 +900,16 @@ model_diag <- function(model) {
 model_diag(modelg)
 ```
 
- - `Residual vs. Fitted plot`: The residuals spread equally around the horizontal line, indicating there is no non-linear relationships. 
+ - `Residual vs. Fitted plot`: The residuals spread equally around the horizontal line, indicating there is no non-linear relationship. 
  - `Normal QQ plot for residuals`: The normality assumption is slightly met since our residuals adhere around the diagonal line but have heavy tails on both sides. We also have one data point deviate severely from the diagonal line. 
  - `Normal QQ plot for Random Effects`: We can accept the random effects are normally distributed. But we still have three outliers. 
  - `Cook's Distance`: We have 3 highly influential states (Florida, Pennsylvania, and California) whose Cook's distance exceeds the $\frac{4}{n}$ cutoff, where n denotes the number of states.
 
-To address the violated assumptions, we tried to remove the data point with the lowest residual and the influential groups. However, this did not improve the normality of residuals very much (see appendix). Moreover, the influential states have considerable sample size (1382 observations). Therefore, we decide only drop the individual level outlier but keep all the groups.
+We tried to remove the data point with the lowest residual and the influential groups to address the violated assumptions. However, this did not improve the normality of residuals very much (see appendix). Moreover, the influential states have a considerable sample size (1382 observations). Therefore, we decide only to drop the individual level outlier but keep all the groups.
 
 
 
-
-```{r, fig.height=10, fig.width=10, echo=FALSE}
+```{r, fig.height=4, fig.width=10, echo=FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
@@ -922,7 +928,7 @@ model_diag(model_g2)
 model_g2_inf<- influence(model_g2, group = "state")
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval=FALSE}
 cooks_distance <- cooks.distance(model_g2_inf)
 cutline <- 4 / length(unique(morph_data2$state))
 infindiv <- cooks_distance > cutline
@@ -954,16 +960,19 @@ data.frame(
   kable_classic(full_width=FALSE)
 ```
 
-```{r, fig.height=10, fig.width=10, echo=FALSE}
+```{r, fig.height=10, fig.width=10, echo=FALSE, eval =FALSE}
 # remove three most influential states
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
-
 
 model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3, REML=F)
 
 model_diag(model_g3)
 ```
+
+
+To be added, no significant improvement 
+
 
 # Conclusion
 
@@ -980,33 +989,33 @@ view_coef <- function(model) {
     kable_classic(full_width=FALSE)
 }
 
-
-
 # view parameter estimates
 view_params <- function(model) {
   params <- summary(model)$varcor %>%
     as.data.frame() %>%
     dplyr::select(vcov)
+  params <- t(params)
+  rownames(params) <- c('Estimate')
   
-  rownames(params) <- c('$\\tau^2$', '$\\sigma^2$')
-  colnames(params) <- c('Estimate')
-  kable(params, digits = 4) %>% 
+  kable(params,
+        col.names = c('$\\tau^2$', '$\\sigma^2$'),
+        digits = 4) %>% 
     kable_classic(full_width=FALSE)
 }
-
 ```
 
 
 ```{r, echo=FALSE}
-view_coef(model_g2)
+view_coef(model_g2) %>%
+  kable_styling(latex_options = c("hold_position","striped"))
 ```
 
 
- - Quarter (baseline: Quarter1): Compared with quarter 1, holding all other predictors unchanged, purchasing the morphine in quarter 2, the per milligram price of the drug will increase by a multiplicative effect of $e^{0.0853} = 1.0891$ (about 8.91%). Similarly, if the drug is purchased in quarter 3 or quarter 4, the drug price will increase by 8.77% and 8.81% respectively.
+ - Quarter (baseline: Quarter1): Compared with quarter 1, holding all other predictors unchanged, purchasing the morphine in quarter 2, the per milligram price of the drug will increase by a multiplicative effect of $e^{0.0853} = 1.0891$ (about 8.91%). Similarly, if the drug is purchased in quarter 3 or 4, the drug price will increase by 8.77% and 8.81%, respectively.
  
- - Source (baseline: Blank): Compared with unkown source, holding all other predictors unchanged, the per milligram drug price heard from other person will increase by a multiplicative effect of $e^{0.0633} = 1.0653$ (about 6.53%). Similarly, the price information obtained from the internet, internet pharmacy, or personal purchase will decrease by 0.41%, 27.58%, and 3.91% respectively.
+ - Source (baseline: Blank): Compared with an unknown source, holding all other predictors unchanged, the per milligram drug price heard from other people will increase by a multiplicative effect of $e^{0.0633} = 1.0653$ (about 6.53%). Similarly, the price information obtained from the internet, internet pharmacy, or personal purchase will decrease by 0.41%, 27.58%, and 3.91%, respectively.
  
- - Dosage Strength (baseline: Low): Compared with low dosage strength, holding all other predictors unchanged, the per milligram price of morphine will decrease by a multiplicative effect of $e^{-0.3816} = 0.6827$ (about 31.73%) if it has medium dosage strength. Similarly, if the dosage strength is medium high or high, the drug price will decrease by 50.34% and 67.36% respectively.
+ - Dosage Strength (baseline: Low): Compared with low dosage strength, holding all other predictors unchanged, the per milligram price of morphine will decrease by a multiplicative effect of $e^{-0.3816} = 0.6827$ (about 31.73%) if it has medium dosage strength. Similarly, if the dosage strength is medium-high or high, the drug price will decrease by 50.34% and 67.36%, respectively.
  
  - Bulk Purchase (baseline: Not bulk purchase): Compared with non-bulk purchase, holding all other predictors unchanged, the unit price of morphine will decrease by a multiplicative effect of $e^{0.1141} = 0.8922$ (about 10.78%).
 
@@ -1014,20 +1023,22 @@ view_coef(model_g2)
 ### Random Effects
 
 ```{r, echo=FALSE}
-view_params(model_g2)
+view_params(model_g2) %>%
+  kable_styling(latex_options = c("hold_position","striped"))
+
 ```
 
 The estimated across-state variance is $\hat{\tau^2} = 0.0161$, which also describes the variation attributed to the random intercept. The estimated within-state variance is $\hat{\sigma^2} = 0.7772$, which describes the unexplained variation. The estimated interclass correlation is $\frac{\hat{\tau^2}}{\hat{\tau^2} + \hat{\sigma^2}} \approx 0.02$. Therefore, we have little correlation within the same state.
 
 
-```{r, fig.height=5, fig.width=8, echo=FALSE}
+```{r, fig.height=7, fig.width=8, echo=FALSE, message =FALSE}
 # view intercept estimates and intervals
-dotplot(ranef(model_g2, condVar = TRUE))
+dotplot(ranef(model_g2, condVar = TRUE))$state
 ```
 
-From the random intercepts plot, we can also see that different states have different base per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk.
+From the random intercepts plot, we can see that different states have different bases per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval =FALSE}
 ranef(model_g2, condVar = TRUE) %>%
   as.data.frame() %>%
   arrange(desc(condval)) %>%
