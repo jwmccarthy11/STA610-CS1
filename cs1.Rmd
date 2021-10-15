@@ -9,6 +9,7 @@ author:
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
   pdf_document:
+    keep_tex: true
     latex_engine: xelatex
 fontsize: 11pt
 geometry: margin=1.5cm
@@ -16,7 +17,7 @@ geometry: margin=1.5cm
 
 
 ```{r setup, include=FALSE, message=FALSE}
-knitr::opts_chunk$set(echo=FALSE, warning=FALSE, message = FALSE, cache = TRUE)
+knitr::opts_chunk$set(warning=FALSE, message = FALSE, cache = TRUE)
 library(tidyverse)
 library(janitor)
 library(gridExtra)
@@ -38,22 +39,15 @@ library(tidybayes)
 library(naniar)
 library(olsrr)
 library(lmerTest)
-#library(rlist)
-library(XML)
 require(lattice)
-
 
 # devtools::install_github("goodekat/redres")
 library(redres)
-
-
 ```
 
-```{r}
+```{r, echo=FALSE}
 load('streetrx.RData')
 ```
-
-
 
 # Introduction
 
@@ -67,7 +61,7 @@ Our drug interest is Morphine. Morphine is used to “relieve moderate to severe
 
 ### Missing Values
 
-```{r, fig.width=6, fig.height=3.5,results ='hide'}
+```{r, results ='hide', echo=FALSE, eval =FALSE}
 na_check <- streetrx %>%
   filter(api_temp == 'morphine') %>%
   mutate_all( list( ~na_if(., '') ) ) %>%
@@ -82,14 +76,12 @@ sum(is.na(na_check$source))
 
 sum(is.na(na_check))
 
-```
-
-```{r,fig.width=6, fig.height=3.5}
 gg_miss_upset(na_check)
 ```
 
 
-```{r,results ='hide'}
+
+```{r,results ='hide', echo=FALSE}
 # subset for group drug
 
 morph_data <- streetrx %>%
@@ -113,7 +105,6 @@ morph_data <- morph_data %>%
     state=recode_factor(droplevels(state), 'USA'='Unknown')
   ) 
 
-
 nrow(morph_data)
 
 sum(morph_data$ppm <=0)
@@ -128,7 +119,7 @@ In addition, we think there is no reason that the price per milligram can be a n
 ### Response Variable: Price per milligram 
 
 
-```{r, fig.width=10, fig.height=3.5}
+```{r, fig.width=7, fig.height=3, echo=FALSE}
 # remove extreme outliers based on quantiles
 
 # untransformed density
@@ -179,26 +170,23 @@ Whether we fit a hierarchical model or linear regression, the response variable 
 
 Since we want to analyze the heterogeneity in pricing by location, we have three choices of grouping variable, `city`, `state`, and `USA_region`.
 
-#### City
+**City**
 
 There are 1642 unique `city` values, and many cities have small sample size (i.e. less than 5 observations). We decide not o use `city` as the grouping variable (see appendix).
 
 
-```{r}
+```{r, echo=FALSE, eval =FALSE}
 length(unique(morph_data$city))
 length(unique(morph_data$state))
 length(unique(morph_data$usa_region))
 ```
 
-```{r}
-unique(morph_data$state)
-```
 
-#### State
+**State**
 
 As for state, we examined the sample sizes in each group and decide to out filter Puerto Rico and Vermont, because they have less than 5 observations. 
 
-```{r}
+```{r, echo=FALSE, eval = FALSE}
 state_size <- morph_data %>%
   group_by(state) %>%
   summarise(n = n(), .groups = "drop")  %>%
@@ -219,7 +207,7 @@ state_size %>%
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 # remove low sample size states
 morph_data <- morph_data %>%
   mutate(state=as.character(state)) %>%
@@ -229,7 +217,7 @@ morph_data <- morph_data %>%
 ```
 
 
-```{r, fig.width=10, fig.height=3}
+```{r, fig.width=10, fig.height=3, echo=FALSE}
 morph_state <- morph_data %>%
   filter(state %in% state.name) %>%
   mutate(state_abv=state.abb[match(state,state.name)])
@@ -269,11 +257,11 @@ Then we inspect the state-level differences closer by plotting the group-level m
 From the above boxplot of `log(ppm)` against `state`, it is also evident that the `log(ppm)` distributions differ across states. This indicates the potential state-level differences in drug prices. Therefore, we decide to use state as our grouping variable at this stage.
 
 
-#### Region
+**Region**
 
 From the boxplot we still see the `log(ppm)` distributions differ slightly across regions, though not that much as across states. We may also consider using region as the grouping variable.
 
-```{r, fig.height=3, fig.width=10}
+```{r, fig.height=3, fig.width=10, echo=FALSE}
 t1 <- morph_state %>%
   group_by(usa_region) %>%
   summarise(n=n(), mean=round(mean(log(ppm)), 3)) %>%
@@ -302,12 +290,12 @@ Our visualizations suggested there is no clear trend that the log value of per m
 
 
 
-```{r results='hide'}
+```{r, results='hide', echo=FALSE, eval=FALSE}
 min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
 morph_data %>% group_by(year) %>% summarise(n = n())
 ```
 
-```{r}
+```{r, echo=FALSE}
 # remove data prior to 2010
 morph_data <- morph_data %>%
   mutate(Year=as.character(year)) %>%
@@ -317,7 +305,7 @@ morph_data <- morph_data %>%
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 # date_diff
 morph_data <- morph_data %>% 
   mutate(date_diff = as.numeric(
@@ -327,7 +315,7 @@ morph_data <- morph_data %>%
 ```
 
 
-```{r}
+```{r, echo=FALSE, eval =FALSE}
 morph_data %>%
   ggplot(aes(x=date_diff)) +
     geom_histogram(
@@ -344,7 +332,7 @@ morph_data %>%
     theme_bw()
 ```
 
-```{r}
+```{r, echo=FALSE,eval =FALSE}
 morph_data %>%
   ggplot(aes(x=date_diff, y=log(ppm))) +
     geom_point() +
@@ -363,7 +351,7 @@ morph_data %>%
 
 
 
-```{r,fig.width=8, fig.height=3.5}
+```{r, echo=FALSE,eval =FALSE}
 yearplot <- morph_data %>%
   ggplot(aes(x = year,y = log(ppm))) +
   geom_boxplot() +
@@ -395,12 +383,11 @@ quarterplot <- morph_data %>%
 grid.arrange(yearplot, quarterplot, ncol=2)
 ```
 
-### Bulk_purchase
+### Bulk_purchase & Source
 
-There is no need to conduct any data cleaning on `bulk_purchase`. And from the boxplot (see appendix), there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
+```{r, fig.width=10, fig.height=3, echo=FALSE, message=FALSE}
 
-```{r, fig.width=6, fig.height=3.5}
-morph_data %>%
+plot1 <- morph_data %>%
   ggplot(aes(x = bulk_purchase,y = log(ppm))) +
   geom_boxplot() +
   labs(x='Bulk Purchase') +
@@ -412,16 +399,7 @@ morph_data %>%
   ) +
   theme_bw()
 
-```
 
-
-
-
-### Source
-
-We have recoded the missing value as "Blank" and the name of websites as "Internet". And we dropped the only observation whose `source` is "Drug Forum". From the boxplot, we see the `log(ppm)` value varies among different sources (see appendix).
-
-```{r, fig.width=6, fig.height=3.5}
 # unique(morph_data$source)
 
 # combine internet levels into single level
@@ -443,7 +421,7 @@ morph_data <- morph_data %>%
   mutate(source=as.character(source)) %>%
   filter(source != "Drug forum")
 
-morph_data %>%
+plot2 <- morph_data %>%
   ggplot(aes(x = source,y = log(ppm))) +
   geom_boxplot() +
   stat_summary(
@@ -458,36 +436,20 @@ morph_data %>%
 # morph_data %>%
 #   group_by(source) %>%
 #   summarize(n =n())
-```
 
-
-### Primary Reason
-
-For `primary_reason`, we have converted the empty cells and "0 Reporter did not answer this question" to "8 Prefer not to answer". The `log(ppm)` value varies a lot among different reasons for purchasing the morphine (see appendix).
-
-```{r, fig.width=6, fig.height=3.5}
-morph_data %>%
-  ggplot(aes(x = primary_reason,y =log(ppm))) +
-  geom_boxplot() +
-  coord_flip() +
-  labs(x = "log(ppm)", y = "Reason")  +
-    stat_summary(
-      fun.y=mean, 
-      geom='point',
-      color='red',
-      size=3
-    ) +
-  theme_bw()
+grid.arrange(plot1, plot2, ncol =2)
 
 ```
 
 
-### Dosage Strength (mgstr)
+There is no need to conduct any data cleaning on `bulk_purchase`. And from the boxplot (see appendix), there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
 
-From the scatter plot of `log(ppm)` against `mgstr`, there is a slight trend that the larger the dosage strength, the smaller the per milligram price. We have also noticed that `mgstr` only takes 16 discrete values. Therefore, we consider to label it into 4 levels ("low", "medium", "medium high", and "high") based on the 0.25, 0.5, and 0.75 quantiles of `mgstr`.
+For the feature `source`, we have recoded the missing value as "Blank" and the name of websites as "Internet". And we dropped the only observation whose `source` is "Drug Forum". From the boxplot, we see the `log(ppm)` value varies among different sources (see appendix).
 
 
-```{r}
+### Dosage Strength & Primary Reason
+
+```{r, echo=FALSE, eval =FALSE}
 morph_data %>%
   ggplot(aes(x=mgstr, y=log(ppm))) +
     geom_point() +
@@ -517,7 +479,7 @@ morph_data %>%
 ```
 
 
-```{r}
+```{r, echo=FALSE, eval =FALSE}
 # check for random slopes
 morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) + 
   geom_point() +
@@ -526,8 +488,7 @@ morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) +
   facet_wrap('usa_region', scales = "fixed")
 ```
 
-
-```{r}
+```{r, fig.width=3, fig.height=3, echo=FALSE, eval =FALSE}
 morph_data %>% 
   group_by(mgstr) %>% 
   summarize(n = n()) %>%
@@ -548,6 +509,9 @@ quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
   rename('mgstr'='.') %>%
   kable()
 
+```
+
+```{r, fig.width=10, fig.height=3, echo=FALSE}
 ## here we decide to re-code mgstr by quantile
 morph_data <- morph_data %>%
   mutate(mgstr2 = case_when(
@@ -557,7 +521,7 @@ morph_data <- morph_data %>%
     mgstr > 60            ~ "4 high")
   )
 
-morph_data %>%
+plot1 <- morph_data %>%
   ggplot(aes(x=mgstr2 ,y=log(ppm))) +
   geom_boxplot() +
   labs(y="log(ppm)", x="Strength")  +
@@ -569,23 +533,38 @@ morph_data %>%
   ) +
   theme_bw()
 
-# jpeg("EDAplotStrength.jpg", width = 500, height = 300)
-# dev.off()
+
+plot2 <- morph_data %>%
+  ggplot(aes(x = primary_reason,y =log(ppm))) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "log(ppm)", y = "Reason")  +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    ) +
+  theme_bw()
+
+grid.arrange(plot1, plot2, ncol =2)
 ```
 
-From the boxplot, we see a more clear trend that the `log(ppm)` values decrease as the dosage strength increase.
+From the scatter plot of `log(ppm)` against `mgstr`, there is a slight trend that the larger the dosage strength, the smaller the per milligram price. We have also noticed that `mgstr` only takes 16 discrete values. Therefore, we consider to label it into 4 levels ("low", "medium", "medium high", and "high") based on the 0.25, 0.5, and 0.75 quantiles of `mgstr`.From the boxplot, we see a more clear trend that the `log(ppm)` values decrease as the dosage strength increase.
 
+
+For `primary_reason`, we have converted the empty cells and "0 Reporter did not answer this question" to "8 Prefer not to answer". The `log(ppm)` value varies a lot among different reasons for purchasing the morphine (see appendix).
 
 
 # Model
 
-### Model Selection
+### Initial Model & Model Selection
 
 Our research question is to investigate factors related to the per milligram price of morphine and explore heterogeneity in pricing by location. As discussed in the EDA part, we do not have enough data to estimate the effects in city-level. Meanwhile, the drug prices do not seem to change significantly across regions. Thus, state is a more preferable choice of accounting for location. Since many states have relatively small sample sizes, a hierarchical model allows us to borrow information across states.
 
 Comparing three full models with different grouping variables, the AIC and BIC score also suggest choosing `state` as the group-level variable.
 
-```{r}
+```{r, echo=FALSE}
 # group by city
 mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city), REML=F)
 
@@ -604,7 +583,7 @@ data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' =
 ```
 
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
 # appendix
 # group by city
 mod_full_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + year + mgstr2 +
@@ -631,23 +610,18 @@ Our baseline model incorporates only the state-level random intercepts. For othe
 Our final model incorporates the grouping variable `state` and the individual level predictors `mgstr` (recoded as 4 levels), `bulk_purchase`, `quarter`, `source`. We also tried to using the full model as a starting point, and did stepwise backward elimination. The results agrees with our final model (See appendix).
 
 
-bic <- up xiao  +
 
 
-
-
-```{r}
+```{r, echo=FALSE, results='hide'}
 modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
 summary(modela)
 ```
 
-```{r a}
+```{r, echo=FALSE, results='hide'}
 modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
 
 
 modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data, REML=F) # 
-
-
 
 
 # ===== 
@@ -688,11 +662,8 @@ step(modelAll)
 
 ```
 
-```{r}
-round(anova(modelc,modele)$`Pr(>Chisq)`[2], 4)
-```
 
-```{r}
+```{r, echo=FALSE}
 model <- c("(1|state)",
            "(1|state) + mgstr2",
            "(1|state) + mgstr2 + bulk_purchase",
@@ -718,49 +689,49 @@ data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
 
 
 
+### Interactions
 
-```{r}
+```{r, echo=FALSE, results='hide'}
 modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
 
 
-modelgg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_qb <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
                  quarter * bulk_purchase, data = morph_data, REML=F)
 
-anova(modelg,modelgg)
+anova(modelg,modelg_qb)
 
-modelggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_qm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
                  quarter * mgstr2, data = morph_data, REML=F)
 
-anova(modelg,modelggg)
+anova(modelg,modelg_qm)
 
-modelgggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_bm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
                  bulk_purchase * mgstr2, data = morph_data, REML=F)
 
-anova(modelg,modelgggg)
+anova(modelg,modelg_bm)
 
-modelggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_qs <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
                  quarter * source, data = morph_data , REML=F)
 
-anova(modelg,modelggggg)
+anova(modelg,modelg_qs)
 
-modelgggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_bs <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
                  bulk_purchase * source, data = morph_data, REML=F)
 
-anova(modelg,modelgggggg)
+anova(modelg,modelg_bs)
 
 
-modelggggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_sm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
                  source * mgstr2, data = morph_data, REML=F)
 
-anova(modelg,modelggggggg)
+anova(modelg,modelg_sm)
 
 ```
 
+To be added, all codes are in appendix, no interaction term can improve the model performance.
 
-
-```{r}
+```{r, echo=FALSE}
 modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
-
 ```
 
 
@@ -784,8 +755,7 @@ The response variable and predictors are defined as:
 
 ### Model Diagnostics
 
-
-```{r, fig.width=10, fig.height=10}
+```{r, echo=FALSE}
 plot_qq <- function(model) {
   df <- data.frame(
     res=residuals(model, scaled=TRUE)
@@ -917,7 +887,7 @@ model_diag <- function(model) {
 
 ```
 
-```{r, fig.heigh=10, fig.width=10}
+```{r, fig.height=4, fig.width=10, echo=FALSE}
 # view_coef(modelg)
 # view_params(modelg)
 model_diag(modelg)
@@ -933,7 +903,7 @@ To address the violated assumptions, we tried to remove the data point with the 
 
 
 
-```{r, fig.heigh=10, fig.width=10}
+```{r, fig.height=10, fig.width=10, echo=FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
@@ -948,11 +918,11 @@ model_diag(model_g2)
 
 
 
-```{r}
+```{r, echo=FALSE}
 model_g2_inf<- influence(model_g2, group = "state")
 ```
 
-```{r}
+```{r, echo=FALSE}
 cooks_distance <- cooks.distance(model_g2_inf)
 cutline <- 4 / length(unique(morph_data2$state))
 infindiv <- cooks_distance > cutline
@@ -984,7 +954,7 @@ data.frame(
   kable_classic(full_width=FALSE)
 ```
 
-```{r, fig.heigh=10, fig.width=10}
+```{r, fig.height=10, fig.width=10, echo=FALSE}
 # remove three most influential states
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
@@ -999,7 +969,7 @@ model_diag(model_g3)
 
 ### Fixed Effects
 
-```{r}
+```{r, echo=FALSE}
 # view coefficient estimates
 view_coef <- function(model) {
   summary(model)$coefficients %>%
@@ -1027,13 +997,10 @@ view_params <- function(model) {
 ```
 
 
-```{r}
+```{r, echo=FALSE}
 view_coef(model_g2)
 ```
 
-```{r}
-1-0.9609
-```
 
  - Quarter (baseline: Quarter1): Compared with quarter 1, holding all other predictors unchanged, purchasing the morphine in quarter 2, the per milligram price of the drug will increase by a multiplicative effect of $e^{0.0853} = 1.0891$ (about 8.91%). Similarly, if the drug is purchased in quarter 3 or quarter 4, the drug price will increase by 8.77% and 8.81% respectively.
  
@@ -1046,21 +1013,21 @@ view_coef(model_g2)
 
 ### Random Effects
 
-```{r}
+```{r, echo=FALSE}
 view_params(model_g2)
 ```
 
 The estimated across-state variance is $\hat{\tau^2} = 0.0161$, which also describes the variation attributed to the random intercept. The estimated within-state variance is $\hat{\sigma^2} = 0.7772$, which describes the unexplained variation. The estimated interclass correlation is $\frac{\hat{\tau^2}}{\hat{\tau^2} + \hat{\sigma^2}} \approx 0.02$. Therefore, we have little correlation within the same state.
 
 
-```{r, fig.heigh=5, fig.width=8}
+```{r, fig.height=5, fig.width=8, echo=FALSE}
 # view intercept estimates and intervals
 dotplot(ranef(model_g2, condVar = TRUE))
 ```
 
 From the random intercepts plot, we can also see that different states have different base per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk.
 
-```{r}
+```{r, echo=FALSE}
 ranef(model_g2, condVar = TRUE) %>%
   as.data.frame() %>%
   arrange(desc(condval)) %>%
@@ -1069,4 +1036,902 @@ ranef(model_g2, condVar = TRUE) %>%
 ```
 
 # Limitation
+
+
+\newpage
+
+
+
+# Appendix
+
+```{r, eval = FALSE}
+# knitr::opts_chunk$set(warning=FALSE, message = FALSE, cache = TRUE)
+library(tidyverse)
+library(janitor)
+library(gridExtra)
+library(cowplot)
+library(knitr)
+require(magrittr)
+require(dplyr)
+library(kableExtra)
+library(readr)
+library(tidyr)
+library(broom)
+library(lme4)
+library(glmmTMB)
+library(sjPlot)
+library(brms)
+library(coda)
+library(rstan)
+library(tidybayes)
+library(naniar)
+library(olsrr)
+library(lmerTest)
+require(lattice)
+
+# devtools::install_github("goodekat/redres")
+library(redres)
+```
+
+```{r, eval = FALSE}
+load('streetrx.RData')
+```
+
+```{r, eval = FALSE}
+na_check <- streetrx %>%
+  filter(api_temp == 'morphine') %>%
+  mutate_all( list( ~na_if(., '') ) ) %>%
+  droplevels()
+
+dim(na_check)
+sum(is.na(na_check))
+
+sum(is.na(na_check$Primary_Reason))
+
+sum(is.na(na_check$source))
+
+sum(is.na(na_check))
+
+gg_miss_upset(na_check)
+```
+
+
+```{r, eval = FALSE}
+# subset for group drug
+
+morph_data <- streetrx %>%
+  filter(api_temp == 'morphine')
+
+morph_data$Primary_Reason <- droplevels(morph_data$Primary_Reason)
+levels(morph_data$Primary_Reason)[1] <- "8 Prefer not to answer"
+levels(morph_data$Primary_Reason)[2] <- "8 Prefer not to answer"
+
+morph_data$source <- droplevels(morph_data$source)
+levels(morph_data$source)[1] <- "Blank"
+
+morph_data <- morph_data %>% 
+  filter(between(ppm, 0.000001, 10)) %>%
+  mutate_all( list( ~na_if(., '') ) ) %>%
+  drop_na() %>%
+  clean_names() %>%
+  mutate(
+    quarter=substring(yq_pdate, 5, 5),
+    year=substring(yq_pdate, 1, 4),
+    state=recode_factor(droplevels(state), 'USA'='Unknown')
+  ) 
+
+nrow(morph_data)
+
+sum(morph_data$ppm <=0)
+```
+
+```{r, eval = FALSE}
+# remove extreme outliers based on quantiles
+
+# untransformed density
+p1 <- morph_data %>%
+  ggplot(aes(x=ppm)) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue', 
+      alpha=0.5,
+      bins=20
+    ) +
+    geom_density(size=0.75, bw=0.3) +
+    labs(title='Distribution of morphine ppm') +
+    theme_bw()
+
+# log-transformed density
+p2 <- morph_data %>%
+  ggplot(aes(x=log(ppm))) +
+    geom_histogram(
+      aes(y=..density..), 
+      color='black', 
+      linetype='dashed',
+      size=0.5,
+      fill='lightcoral', 
+      alpha=0.5,
+      bins=20
+    ) +
+    geom_density(size=0.75, bw=0.3) +
+    labs(title='Distribution of morphine log(ppm)') +
+    xlim(-7, 3) +
+    theme_bw()
+
+grid.arrange(p1, p2, ncol=2)
+
+
+```
+
+
+```{r, eval = FALSE}
+length(unique(morph_data$city))
+length(unique(morph_data$state))
+length(unique(morph_data$usa_region))
+```
+
+```{r, eval = FALSE}
+state_size <- morph_data %>%
+  group_by(state) %>%
+  summarise(n = n(), .groups = "drop")  %>%
+  arrange(n) %>%
+  pivot_wider(
+    names_from=state,
+    values_from=n
+  )
+
+state_size %>% 
+  dplyr::select(1:5) %>%
+  kable(
+    caption = '5 States with Smallest Sample Size',
+    align='c', 
+    booktabs=TRUE) %>%
+  kable_styling(latex_options = c('hold_position'))
+
+```
+
+```{r, eval = FALSE}
+# remove low sample size states
+morph_data <- morph_data %>%
+  mutate(state=as.character(state)) %>%
+  filter(!state %in% c(
+    'Puerto Rico', 'Vermont'
+  ))
+```
+
+
+
+```{r, eval = FALSE}
+morph_state <- morph_data %>%
+  filter(state %in% state.name) %>%
+  mutate(state_abv=state.abb[match(state,state.name)])
+
+
+grand_mean <- mean(morph_state$ppm)
+
+p3 <- morph_state %>%
+  group_by(state_abv) %>%
+  summarise(n = n(), mean = mean(ppm)) %>%
+  ggplot(aes(x=n, y=mean)) +
+    geom_hline(
+      aes(yintercept=grand_mean),
+      linetype='dashed',
+      color='red',
+      size=0.75
+    ) +
+    geom_point() +
+    labs(x='sample size', y='mean log(ppm)') +
+    theme_bw()
+
+
+p4 <- morph_state %>%
+  ggplot(aes(y=log(ppm), x=state_abv)) +
+    geom_boxplot(
+      fill=rainbow(49),
+      alpha=0.5    
+    ) +
+    scale_x_discrete(guide=guide_axis(angle = 90)) +
+    theme_bw() +
+    labs(x='state')
+
+cowplot::plot_grid(p3, p4, rel_widths = c(1, 2))
+```
+
+
+```{r, eval = FALSE}
+t1 <- morph_state %>%
+  group_by(usa_region) %>%
+  summarise(n=n(), mean=round(mean(log(ppm)), 3)) %>%
+  tableGrob()
+
+p5 <- morph_state %>%
+  ggplot(aes(y=log(ppm), x=usa_region)) +
+    geom_boxplot() +
+    stat_summary(
+      fun.y=mean, 
+      geom='point',
+      color='red',
+      size=3
+    ) +
+    theme_bw()
+
+grid.arrange(t1, p5, ncol=2, widths=c(2, 2))
+```
+
+```{r, eval = FALSE}
+min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
+morph_data %>% group_by(year) %>% summarise(n = n())
+```
+
+```{r, eval = FALSE}
+# remove data prior to 2010
+morph_data <- morph_data %>%
+  mutate(Year=as.character(year)) %>%
+  filter(!year %in% c(
+    1969, 2000, 2002, 2005
+  ))
+```
+
+
+```{r, eval = FALSE}
+# date_diff
+morph_data <- morph_data %>%
+  mutate(date_diff = as.numeric(
+    as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2010-01-01")
+    )
+  )
+```
+
+```{r, eval = FALSE}
+morph_data %>%
+  ggplot(aes(x=date_diff)) +
+    geom_histogram(
+      aes(y=..density..),
+      color='black',
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue',
+      alpha=0.5,
+      bins=30
+    ) +
+    geom_density(size=0.75, bw=100) +
+    labs(title='Date Distribution') +
+    theme_bw()
+```
+
+```{r, eval = FALSE}
+morph_data %>%
+  ggplot(aes(x=date_diff, y=log(ppm))) +
+    geom_point() +
+    geom_smooth() +
+    theme_bw()
+
+# check for random slopes
+# morph_data_a <- subset(morph_data,state %in% c("Arizona", "Texas","California", "Pennsylvania"))
+# morph_data_a %>% ggplot(aes(x = date_diff, y = log(ppm))) +
+#   geom_point() +
+#   geom_smooth() +
+#  theme_bw() +
+#   facet_wrap('state', scales = "fixed")
+```
+
+```{r, eval = FALSE}
+yearplot <- morph_data %>%
+  ggplot(aes(x = year,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Year') +
+  stat_summary(
+    fun.y=mean,
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+```
+
+
+```{r, eval = FALSE}
+quarterplot <- morph_data %>%
+  ggplot(aes(x = quarter,y = log(ppm))) +
+  geom_boxplot() +
+  labs(
+    x='Quarter',
+    y=''
+  )  +
+  stat_summary(
+    fun.y=mean,
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+grid.arrange(yearplot, quarterplot, ncol=2)
+```
+
+```{r, eval = FALSE}
+morph_data %>%
+  ggplot(aes(x = bulk_purchase,y = log(ppm))) +
+  geom_boxplot() +
+  labs(x='Bulk Purchase') +
+  stat_summary(
+    fun.y=mean,
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+```
+
+
+```{r, eval = FALSE}
+# unique(morph_data$source)
+
+# combine internet levels into single level
+morph_data <- morph_data %>%
+  mutate(source=replace(
+    source, !source %in% c(
+      "Blank",
+      'Personal',
+      'Heard it',
+      'Internet',
+      'Internet Pharmacy',
+      'Drug forum'
+    ), 'Internet'
+  )) %>%
+  droplevels()
+
+
+morph_data <- morph_data %>%
+  mutate(source=as.character(source)) %>%
+  filter(source != "Drug forum")
+
+morph_data %>%
+  ggplot(aes(x = source,y = log(ppm))) +
+  geom_boxplot() +
+  stat_summary(
+    fun.y=mean,
+    geom='point',
+    color='red',
+    size=2
+  ) +
+  theme_bw()
+
+
+# morph_data %>%
+#   group_by(source) %>%
+#   summarize(n =n())
+```
+
+
+```{r, eval = FALSE}
+morph_data %>%
+  ggplot(aes(x = primary_reason,y =log(ppm))) +
+  geom_boxplot() +
+  coord_flip() +
+  labs(x = "log(ppm)", y = "Reason")  +
+    stat_summary(
+      fun.y=mean,
+      geom='point',
+      color='red',
+      size=3
+    ) +
+  theme_bw()
+
+```
+
+
+```{r, eval = FALSE}
+morph_data %>%
+  ggplot(aes(x=mgstr, y=log(ppm))) +
+    geom_point() +
+    geom_smooth() +
+    theme_bw()
+
+# morph_data %>%
+#   ggplot(aes(x=log(mgstr), y=log(ppm))) +
+#     geom_point() +
+#     geom_smooth() +
+#     theme_bw()
+
+morph_data %>%
+  ggplot(aes(x=mgstr)) +
+    geom_histogram(
+      aes(y=..density..),
+      color='black',
+      linetype='dashed',
+      size=0.5,
+      fill='lightblue',
+      alpha=0.5,
+      bins=10
+    ) +
+    geom_density(size=0.75, bw=7.5) +
+    labs(title='mgstr Distribution') +
+    theme_bw()
+```
+
+
+```{r, eval = FALSE}
+# check for random slopes
+morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) +
+  geom_point() +
+  geom_smooth() +
+  theme_bw() +
+  facet_wrap('usa_region', scales = "fixed")
+```
+
+
+```{r, eval = FALSE}
+morph_data %>%
+  group_by(mgstr) %>%
+  summarize(n = n()) %>%
+  pivot_wider(
+    names_from=mgstr,
+    values_from=n
+  ) %>%
+  kable(
+    caption='Sample Size for mgstr Levels',
+    align='c',
+    booktabs=TRUE
+  ) %>%
+  kable_styling(latex_options = c('hold_position'))
+
+# inspect mgstr value quantiles
+quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
+  data.frame() %>%
+  rename('mgstr'='.') %>%
+  kable()
+
+## here we decide to re-code mgstr by quantile
+morph_data <- morph_data %>%
+  mutate(mgstr2 = case_when(
+    mgstr <= 15              ~ "1 low",
+    mgstr >15 & mgstr <= 30  ~ "2 medium",
+    mgstr >30 & mgstr <= 60  ~ "3 medium high",
+    mgstr > 60            ~ "4 high")
+  )
+
+morph_data %>%
+  ggplot(aes(x=mgstr2 ,y=log(ppm))) +
+  geom_boxplot() +
+  labs(y="log(ppm)", x="Strength")  +
+  stat_summary(
+    fun.y=mean,
+    geom='point',
+    color='red',
+    size=3
+  ) +
+  theme_bw()
+
+# jpeg("EDAplotStrength.jpg", width = 500, height = 300)
+# dev.off()
+```
+
+```{r, eval = FALSE}
+# group by city
+mod_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city), REML=F)
+
+# group by state
+mod_2 <- lmer(data=morph_data, log(ppm) ~ (1 |state), REML=F)
+
+# group by region
+mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region), REML=F)
+
+aic_score <- sapply(c(mod_1, mod_2, mod_3), AIC)
+bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
+
+data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
+  kable()
+
+```
+
+
+```{r, eval = FALSE}
+# appendix
+# group by city
+mod_full_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + year + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
+
+# group by state
+mod_full_2 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + year + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
+
+# group by region
+mod_full_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + year + mgstr2 +
+                bulk_purchase + primary_reason + source, REML=F)
+
+aic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), AIC)
+bic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), BIC)
+
+data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
+  kable()
+
+```
+
+```{r, eval = FALSE}
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) #
+summary(modela)
+```
+
+```{r, eval = FALSE}
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) #
+
+
+modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data, REML=F) #
+
+
+
+
+# =====
+modelc <- lmer(log(ppm) ~  mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) #
+
+anova(modelb,modelc)
+
+
+# =====
+
+modeld <- lmer(log(ppm) ~  year + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+
+modele <- lmer(log(ppm) ~  quarter + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) #
+
+modelf <- lmer(log(ppm) ~ date_diff + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+
+anova(modelc,modeld)
+
+anova(modelc,modele)
+
+anova(modelc,modelf)
+
+
+# =====
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) #
+
+anova(modele,modelg)
+
+# =====
+
+# Maybe a little cleaner way to do this
+modelh<- lmer(log(ppm) ~  quarter + primary_reason + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+
+anova(modelg, modelh)
+
+modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
+step(modelAll)
+
+```
+
+```{r, eval = FALSE}
+round(anova(modelc,modele)$`Pr(>Chisq)`[2], 4)
+```
+
+```{r, eval = FALSE}
+model <- c("(1|state)",
+           "(1|state) + mgstr2",
+           "(1|state) + mgstr2 + bulk_purchase",
+           "(1|state) + mgstr2 + bulk_purchase + year",
+           "(1|state) + mgstr2 + bulk_purchase + quarter",
+           "(1|state) + mgstr2 + bulk_purchase + date_diff",
+           "(1|state) + mgstr2 + bulk_purchase + quarter + source",
+           "(1|state) + mgstr2 + bulk_purchase + quarter + source + primary_reason")
+LRT <- c("",
+         round(anova(modela,modelb)$`Pr(>Chisq)`[2],4),
+         round(anova(modelb,modelc)$`Pr(>Chisq)`[2],4),
+         round(anova(modelc,modeld)$`Pr(>Chisq)`[2],4),
+         round(anova(modelc,modele)$`Pr(>Chisq)`[2],4),
+         round(anova(modelc,modelf)$`Pr(>Chisq)`[2],4),
+         round(anova(modele,modelg)$`Pr(>Chisq)`[2],4),
+         round(anova(modelg,modelh)$`Pr(>Chisq)`[2],4))
+BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
+data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
+  kable()
+
+
+```
+
+
+```{r, eval = FALSE}
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+
+
+modelgg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) +
+                 quarter * bulk_purchase, data = morph_data, REML=F)
+
+anova(modelg,modelgg)
+
+modelggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) +
+                 quarter * mgstr2, data = morph_data, REML=F)
+
+anova(modelg,modelggg)
+
+modelgggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) +
+                 bulk_purchase * mgstr2, data = morph_data, REML=F)
+
+anova(modelg,modelgggg)
+
+modelggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) +
+                 quarter * source, data = morph_data , REML=F)
+
+anova(modelg,modelggggg)
+
+modelgggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) +
+                 bulk_purchase * source, data = morph_data, REML=F)
+
+anova(modelg,modelgggggg)
+
+
+modelggggggg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) +
+                 source * mgstr2, data = morph_data, REML=F)
+
+anova(modelg,modelggggggg)
+
+```
+
+
+
+```{r, eval = FALSE}
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+
+```
+
+
+```{r, eval = FALSE}
+plot_qq <- function(model) {
+  df <- data.frame(
+    res=residuals(model, scaled=TRUE)
+  )
+
+  p <- ggplot(df, aes(sample=res)) +
+    stat_qq() +
+    stat_qq_line(
+      linetype='dashed',
+      color='red',
+      size=1
+    ) +
+    labs(
+      title='Normal QQ for Residuals',
+      x='Theoretical Quantiles',
+      y='Standardized Residuals'
+    ) + theme_bw()
+
+  return(p)
+}
+plot_ranef_qq <- function(model) {
+  df <- data.frame(
+    res=ranef(model)[[1]][[1]]
+  )
+
+  p <- ggplot(df, aes(sample=res)) +
+    stat_qq() +
+    stat_qq_line(
+      linetype='dashed',
+      color='red',
+      size=1
+    ) +
+    labs(
+      title='Normal QQ for Random Effects',
+      x='Theoretical Quantiles',
+      y='State Intercept'
+    ) + theme_bw()
+
+  return(p)
+}
+plot_res_fit <- function(model) {
+  df <- data.frame(
+    res=residuals(model),
+    fit=fitted(model)
+  )
+
+  p <- ggplot(df, aes(x=fit, y=res)) +
+    geom_point() +
+    geom_hline(
+      yintercept=0,
+      linetype="dashed"
+    ) +
+    geom_smooth() +
+    labs(
+      title='Residuals vs. Fitted',
+      x='Fitted',
+      y='Residuals'
+    ) + theme_bw()
+
+  return(p)
+}
+plot_scale_loc <- function(model) {
+  df <- data.frame(
+    res=sqrt(residuals(model, scaled=TRUE)),
+    fit=fitted(model)
+  )
+
+  p <- ggplot(df, aes(x=fit, y=res)) +
+    geom_point() +
+    geom_smooth() +
+    labs(
+      title='Scale-Location',
+      x='Fitted',
+      y=expression(sqrt('Standardized Residuals'))
+    ) + theme_bw()
+
+  return(p)
+}
+plot_res_dens <- function(model) {
+  df <- data.frame(
+    res=residuals(model)
+  )
+
+  p <- ggplot(df, aes(x=res)) +
+    geom_density() +
+    labs(
+      title='Residuals Density',
+      x='Residuals',
+      y='Density'
+    ) + theme_bw()
+
+  return(p)
+}
+
+
+plot_cooks_distance <- function(model1){
+  model_inf<- influence(model1, group = "state")
+  data <- model.frame(model1)
+  cooks_distance <- cooks.distance(model_inf)
+  cutline <- 4 / length(unique(data$state))
+  infindiv <- cooks_distance > cutline
+
+  p <- ggplot(data=NULL, aes(x=1:length(unique(data$state)), y=cooks_distance)) +
+    geom_point() +
+    geom_hline(
+      yintercept=cutline,
+      linetype='dashed',
+      color='red',
+      size=0.75
+    ) +
+    labs(
+      x='Index',
+      y='Cooks Distance'
+    ) +
+    theme_bw()
+  return(p)
+}
+
+model_diag <- function(model) {
+  p1 <- plot_res_fit(model)
+  p2 <- plot_qq(model)
+  p3 <- plot_ranef_qq(model)
+  p4 <- plot_cooks_distance(model)
+
+  cowplot::plot_grid(p1, p2, p3, p4, nrow=2)
+}
+
+
+
+```
+
+```{r, eval = FALSE}
+# view_coef(modelg)
+# view_params(modelg)
+model_diag(modelg)
+```
+
+
+```{r, eval = FALSE}
+# remove lowest residual data point
+morph_data2 <- morph_data[-which.min(resid(modelg)),]
+
+
+model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2, REML=F)
+
+
+# view_coef(model_g2)
+# view_params(model_g2)
+model_diag(model_g2)
+```
+
+
+```{r, eval = FALSE}
+model_g2_inf<- influence(model_g2, group = "state")
+```
+
+```{r, eval = FALSE}
+cooks_distance <- cooks.distance(model_g2_inf)
+cutline <- 4 / length(unique(morph_data2$state))
+infindiv <- cooks_distance > cutline
+
+ggplot(data=NULL, aes(x=1:length(unique(morph_data2$state)), y=cooks_distance)) +
+  geom_point() +
+  geom_hline(
+    yintercept=cutline,
+    linetype='dashed',
+    color='red',
+    size=0.75
+  ) +
+  labs(
+    x='Index',
+    y='Cooks Distance'
+  ) +
+  theme_bw()
+
+
+data.frame(
+  rownames(model_g2_inf$`fixed.effects[-state]`),
+  round(cooks_distance, 4),
+  infindiv
+) %>%
+  filter(infindiv == TRUE) %>%
+  dplyr::select(1:2) %>%
+  rename(`State`=1, `Cook's Distance`=2) %>%
+  kable() %>%
+  kable_classic(full_width=FALSE)
+```
+
+```{r, eval = FALSE}
+# remove three most influential states
+morph_data3 <- morph_data2 %>%
+  filter(!state %in% c('Florida', 'California','Pennsylvania'))
+
+
+model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3, REML=F)
+
+model_diag(model_g3)
+```
+
+
+```{r, eval = FALSE}
+# view coefficient estimates
+view_coef <- function(model) {
+  summary(model)$coefficients %>%
+    as.data.frame() %>%
+    mutate(`exp(Estimate)`=exp(Estimate)) %>%
+    relocate(`exp(Estimate)`, .after=Estimate) %>%
+    kable(digits = 4) %>%
+    kable_classic(full_width=FALSE)
+}
+
+
+
+# view parameter estimates
+view_params <- function(model) {
+  params <- summary(model)$varcor %>%
+    as.data.frame() %>%
+    dplyr::select(vcov)
+
+  rownames(params) <- c('$\\tau^2$', '$\\sigma^2$')
+  colnames(params) <- c('Estimate')
+  kable(params, digits = 4) %>%
+    kable_classic(full_width=FALSE)
+}
+
+```
+
+
+```{r, eval = FALSE}
+view_coef(model_g2)
+```
+
+
+```{r, eval = FALSE}
+view_params(model_g2)
+```
+
+
+
+```{r, eval = FALSE}
+# view intercept estimates and intervals
+dotplot(ranef(model_g2, condVar = TRUE))
+```
+
+
+```{r, eval = FALSE}
+ranef(model_g2, condVar = TRUE) %>%
+  as.data.frame() %>%
+  arrange(desc(condval)) %>%
+  mutate(`exp(condval)` = exp(condval)) %>%
+  kable()
+```
+
+
 
