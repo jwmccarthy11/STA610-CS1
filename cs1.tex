@@ -5,10 +5,10 @@
 \documentclass[
   11pt,
 ]{article}
-\usepackage{amsmath,amssymb}
 \usepackage{lmodern}
-\usepackage{iftex}
-\ifPDFTeX
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
   \usepackage[T1]{fontenc}
   \usepackage[utf8]{inputenc}
   \usepackage{textcomp} % provide euro and other symbols
@@ -83,7 +83,7 @@
 \newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
 \newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
 \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
-\usepackage{graphicx}
+\usepackage{graphicx,grffile}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
 \def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
@@ -114,14 +114,10 @@
 \usepackage[normalem]{ulem}
 \usepackage{makecell}
 \usepackage{xcolor}
-\ifLuaTeX
-  \usepackage{selnolig}  % disable illegal ligatures
-\fi
 
 \title{STA610 Case Study 1}
-\author{Emily Gentles (Presenter) \and Weiyi Liu (Writer) \and Jack
-McCarthy (Programmer) \and Qinzhe Wang (Coordinator \& Checker)}
-\date{15 October, 2021}
+\author{Emily Gentles (Presenter) \and Weiyi Liu (Writer) \and Jack McCarthy (Programmer) \and Qinzhe Wang (Coordinator \& Checker)}
+\date{17 October, 2021}
 
 \begin{document}
 \maketitle
@@ -138,14 +134,12 @@ of the drug. More specifically, our group's interest is to explore the
 factors related to the cost per milligram and the heterogeneity in the
 region. The dataset we will be using is provided by StreetRx, a
 reporting tool for people at large to anonymously report the price they
-paid or heard for diverted prescription drugs.
+paid or heard for diverted prescription drugs. Our drug of interest is
+Morphine which is used to ``relieve moderate to severe pain and may be
+habit-forming,'' especially with prolonged use (MedlinePlus).
 
-Our drug of interest is Morphine which is used to ``relieve moderate to
-severe pain and may be habit-forming,'' especially with prolonged use
-(MedlinePlus).
-
-\hypertarget{eda}{%
-\section{EDA}\label{eda}}
+\hypertarget{data-cleaning-eda}{%
+\section{Data Cleaning \& EDA}\label{data-cleaning-eda}}
 
 \hypertarget{missing-values}{%
 \subsubsection{Missing Values}\label{missing-values}}
@@ -183,9 +177,9 @@ transformation may be appropriate. We can see that the distribution of
 \texttt{log(ppm)}, given above, appears to be much closer to the desired
 normal distribution.
 
-\hypertarget{grouping-variable-city-state-and-usa_region}{%
+\hypertarget{grouping-variable-city-state-and-region}{%
 \subsubsection{Grouping Variable: city, state, and
-USA\_region}\label{grouping-variable-city-state-and-usa_region}}
+region}\label{grouping-variable-city-state-and-region}}
 
 Since we want to analyze the heterogeneity in pricing by location, we
 have three choices of grouping variables, \texttt{city}, \texttt{state},
@@ -200,7 +194,7 @@ sample size (i.e.~less than 5 observations). We decide not to use
 \textbf{State}
 
 As for the state, we examined the sample sizes in each group and decided
-to out filter Puerto Rico and Vermont because they have less than 5
+to filter out Puerto Rico and Vermont because they have less than 5
 observations.
 
 \includegraphics{cs1_files/figure-latex/unnamed-chunk-8-1.pdf}
@@ -250,9 +244,9 @@ appendix).
 \includegraphics{cs1_files/figure-latex/unnamed-chunk-16-1.pdf}
 
 There is no need to conduct any data cleaning on
-\texttt{bulk\_purchase}. And from the boxplot (see appendix), there is a
-slight trend that the drug price may be lower if purchased in bulk.
-Therefore, \texttt{bulk\_purchase} might be a potential predictor.
+\texttt{bulk\_purchase}. From the boxplot we see that there is a slight
+trend that the drug price may be lower if purchased in bulk. Therefore,
+\texttt{bulk\_purchase} might be a potential predictor.
 
 For the feature \texttt{source}, we have recoded the missing value as
 ``Blank'' and the name of websites as ``Internet''. We also dropped the
@@ -280,6 +274,17 @@ Reporter did not answer this question'' to ``8 Prefer not to answer''.
 The \texttt{log(ppm)} value varies among different reasons for
 purchasing morphine (see appendix).
 
+\hypertarget{interaction}{%
+\subsubsection{Interaction}\label{interaction}}
+
+We also inspected how predictors interact with each other, i.e.~whether
+the effect of one predictor on the unit price of morphine is influenced
+by any other predictor. We found that there might by potential
+interaction among \texttt{dosage\ strength}, and \texttt{quarter}, or
+\texttt{quarter}, and \texttt{primary\ reason} (see appendix). In the
+modeling part, we will check whether there are interactions in a more
+formal way.
+
 \hypertarget{model}{%
 \section{Model}\label{model}}
 
@@ -292,7 +297,7 @@ milligram price of morphine and explore heterogeneity in pricing by
 location. As discussed in the EDA part, we do not have enough data to
 estimate the effects at the city level. Meanwhile, the drug prices do
 not seem to change significantly across regions. Thus, the state
-variable is a preferable choice of accounting for location. Since many
+variable is the prefered choice of accounting for location. Since many
 states have relatively small sample sizes, a hierarchical model allows
 us to borrow information across states.
 
@@ -300,7 +305,11 @@ Comparing three full models with different grouping variables, the AIC
 and BIC score also suggest choosing \texttt{state} as the group-level
 variable.
 
-\begin{tabular}{l|r|r}
+\begin{table}
+
+\caption{\label{tab:unnamed-chunk-21}AIC and BIC for different grouping variables}
+\centering
+\begin{tabular}[t]{l|r|r}
 \hline
 Grouping & AIC & BIC\\
 \hline
@@ -311,25 +320,28 @@ State & 15354.88 & 15374.76\\
 Region & 15400.48 & 15420.36\\
 \hline
 \end{tabular}
+\end{table}
 
 Our baseline model incorporates only the state-level random intercepts.
 For other individual-level predictors, we add one variable to the model
 each time and use both the Likelihood Ratio test and the BIC score to
-determine whether it should be added. The \textbf{LRT} is designed for
-nested models while the BIC score considers both the likelihood and the
-model complexity and gives a more general sense of model performance.
-The table below displays the results of model selection. We also used
-the full model as a starting point to perform stepwise backward
-elimination with the results agreeing the previous model selection
-method. (See appendix).
+determine whether it should be added. The LRT is designed for nested
+models while the BIC score considers both the likelihood and the model
+complexity and gives a more general sense of model performance while
+also being consistent. Tables 1 and 2 display the results of model
+selection. We also used the full model as a starting point to perform
+stepwise backward elimination with the results agreeing with the
+previous model selection method. (See appendix).
 
 Our final model incorporates the grouping variable \texttt{state} and
 the individual level predictors \texttt{mgstr} (recoded as 4 levels), as
 well as \texttt{bulk\_purchase}, \texttt{quarter}, and \texttt{source}.
 
 \begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-24}Forward model selection}
 \centering
-\begin{tabular}{l|l|r}
+\begin{tabular}[t]{l|l|r}
 \hline
 Model & LRT.p.value & BIC\\
 \hline
@@ -355,15 +367,20 @@ Model & LRT.p.value & BIC\\
 \hypertarget{interactions}{%
 \subsubsection{Interactions}\label{interactions}}
 
-To be added, all codes are in appendix, no interaction term can improve
-the model performance.
+From the EDA, we see some potential interactions between predictors (see
+appendix). Here, we also tried to incorporate all possible two-way
+interactions into the model (one at a time), but non of them seem to
+pass the LRT test or improve the model BIC score (see appendix). To
+control the model complexity, we did not try any three-way or more
+complex interaction terms. Therefore, we decided not to add any
+interaction term into the final model.
 
 \hypertarget{final-model}{%
 \subsubsection{Final Model}\label{final-model}}
 
 Our final model is
 \[log(y_{ij}) = \beta_0 + b_{0j} + \beta_1 M_{ij} + \beta_2 B_{ij} + \beta_3 Q_{ij} + \beta_4 S_{ij} + \epsilon_{ij}\]
-\[b_{0j} \sim \mathcal{N}(0, \tau^2) \perp \epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)\]
+\[b_{0j} \stackrel{iid}\sim \mathcal{N}(0, \tau^2) \perp \epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)\]
 The response variable and predictors are defined as:
 
 \begin{itemize}
@@ -385,7 +402,7 @@ The response variable and predictors are defined as:
 \hypertarget{model-diagnostics}{%
 \subsubsection{Model Diagnostics}\label{model-diagnostics}}
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-29-1.pdf}
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-28-1.pdf}
 
 \begin{itemize}
 \tightlist
@@ -409,16 +426,15 @@ The response variable and predictors are defined as:
   the number of states.
 \end{itemize}
 
-We tried to remove the data point with the lowest residual and the
-influential groups to address the violated assumptions. However, this
-did not drastically improve the normality of the residuals (see
-appendix). Moreover, the influential states have a considerable sample
-size (1382 observations). Therefore, we decide only to drop the
-individual level outlier but keep all the groups.
-
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-30-1.pdf}
-
-To be added, no significant improvement
+To address the violated assumptions, we tried to remove the data point
+with the lowest residual and the influential groups. By removing the
+influential observation, the normality of the residuals improved a
+little bit, and the dots aligned more tightly to the diagonal line.
+However, removing the influential states does not drastically improve
+the normality of the residuals (see appendix). Moreover, the influential
+states have a considerable sample size (1382 observations). Therefore,
+we decide only to drop the individual level outlier but keep all the
+groups.
 
 \hypertarget{conclusion}{%
 \section{Conclusion}\label{conclusion}}
@@ -427,8 +443,10 @@ To be added, no significant improvement
 \subsubsection{Fixed Effects}\label{fixed-effects}}
 
 \begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-33}Estimates of fixed effects}
 \centering
-\begin{tabular}{l|r|r|r|r|r|r}
+\begin{tabular}[t]{l|r|r|r|r|r|r}
 \hline
   & Estimate & exp(Estimate) & Std. Error & df & t value & Pr(>|t|)\\
 \hline
@@ -492,8 +510,10 @@ bulk\_purchase1 Bulk purchase & -0.1141 & 0.8922 & 0.0296 & 5557.9880 & -3.8488 
 \subsubsection{Random Effects}\label{random-effects}}
 
 \begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-34}Estimates of random effects}
 \centering
-\begin{tabular}{l|r|r}
+\begin{tabular}[t]{l|r|r}
 \hline
   & $\tau^2$ & $\sigma^2$\\
 \hline
@@ -510,7 +530,7 @@ correlation is
 \(\frac{\hat{\tau^2}}{\hat{\tau^2} + \hat{\sigma^2}} \approx 0.02\).
 Therefore, we have little correlation within the same state.
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-37-1.pdf}
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-35-1.pdf}
 
 From the random intercepts plot, we can see that states have different
 bases per milligram morphine prices. The prices ranges from
@@ -519,256 +539,577 @@ bases per milligram morphine prices. The prices ranges from
 all other predictors, which are purchasing in quarter 1, from an unknown
 source, with low dosage strength, and not purchased in bulk
 
-\hypertarget{limitation}{%
-\section{Limitation}\label{limitation}}
+\hypertarget{limitations}{%
+\section{Limitations}\label{limitations}}
+
+Our analysis and model have several limitations. Firstly, StreetRX
+provides only self-reported data, which is likely to be messy, biased,
+and lacking credibility. Although we borrow information across states
+via a hierarchical model, states with small sample sizes are still
+problematic. The within-state variance \(\sigma^2\) is much larger than
+the across-state variance \(\tau^2\), indicating that there is still
+much within-state variation left unexplained. This suggests that the per
+milligram price of morphine may depend on factors not on the state
+level. Having access to more predictors may help explain these
+variations and improve the model performance.
+
+Another line
+
+Another line 2
 
 \newpage
 
 \hypertarget{appendix}{%
 \section{Appendix}\label{appendix}}
 
+\hypertarget{additional-tables-and-figures}{%
+\subsection{Additional tables and
+figures}\label{additional-tables-and-figures}}
+
+\hypertarget{data-cleaning-eda-1}{%
+\subsubsection{Data Cleaning \& EDA}\label{data-cleaning-eda-1}}
+
+\hypertarget{missing-values-1}{%
+\subsubsection{Missing Values}\label{missing-values-1}}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-38-1} \end{center}
+
+\hypertarget{grouping-variable-city-state-and-region-1}{%
+\subsubsection{Grouping Variable: city, state, and
+region}\label{grouping-variable-city-state-and-region-1}}
+
+\textbf{State}
+
+\hypertarget{date-price_date-1}{%
+\subsubsection{Date (price\_date)}\label{date-price_date-1}}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-45-1} \end{center}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-46-1} \end{center}
+
+\hypertarget{dosage-strength-primary-reason-1}{%
+\subsubsection{Dosage Strength \& Primary
+Reason}\label{dosage-strength-primary-reason-1}}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-47-1} \end{center}
+
+\begin{table}
+
+\caption{\label{tab:unnamed-chunk-49}Quantile of mgstr}
+\centering
+\begin{tabular}[t]{l|r}
+\hline
+  & mgstr\\
+\hline
+25\% & 15\\
+\hline
+50\% & 30\\
+\hline
+75\% & 60\\
+\hline
+\end{tabular}
+\end{table}
+
+\hypertarget{interaction-plots}{%
+\subsubsection{Interaction Plots}\label{interaction-plots}}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-51-1} \end{center}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-51-2} \end{center}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-51-3} \end{center}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-51-4} \end{center}
+
+\hypertarget{model-1}{%
+\subsection{Model}\label{model-1}}
+
+\hypertarget{initial-model-model-selection-1}{%
+\subsubsection{Initial Model \& Model
+Selection}\label{initial-model-model-selection-1}}
+
+\begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-52}AIC and BIC for different grouping variables (full models)}
+\centering
+\begin{tabular}[t]{l|r|r}
+\hline
+Grouping & AIC & BIC\\
+\hline
+\cellcolor{gray!6}{City} & \cellcolor{gray!6}{14627.21} & \cellcolor{gray!6}{14931.96}\\
+\hline
+State & 14577.10 & 14881.85\\
+\hline
+\cellcolor{gray!6}{Region} & \cellcolor{gray!6}{14610.16} & \cellcolor{gray!6}{14914.91}\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+
+\caption{\label{tab:unnamed-chunk-53}Stepwise backward elimination results}
+\centering
+\begin{tabular}[t]{l|r|r|r|r|r|r|r}
+\hline
+  & Eliminated & Sum Sq & Mean Sq & NumDF & DenDF & F value & Pr(>F)\\
+\hline
+date\_diff & 1 & 0.0173 & 0.0173 & 1 & 5560.078 & 0.0221 & 0.8817\\
+\hline
+year & 2 & 8.1386 & 0.9043 & 9 & 5549.587 & 1.1558 & 0.3191\\
+\hline
+primary\_reason & 3 & 11.3847 & 1.4231 & 8 & 5552.196 & 1.8156 & 0.0693\\
+\hline
+quarter & 0 & 7.1468 & 2.3823 & 3 & 5554.311 & 3.0310 & 0.0282\\
+\hline
+mgstr2 & 0 & 670.1758 & 223.3919 & 3 & 5554.045 & 284.2265 & 0.0000\\
+\hline
+bulk\_purchase & 0 & 12.1690 & 12.1690 & 1 & 5560.929 & 15.4829 & 0.0001\\
+\hline
+source & 0 & 24.8908 & 1.3828 & 18 & 5550.635 & 1.7594 & 0.0243\\
+\hline
+\end{tabular}
+\end{table}
+
+\hypertarget{interactions-1}{%
+\subsubsection{Interactions}\label{interactions-1}}
+
+\begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-54}Interaction}
+\centering
+\begin{tabular}[t]{l|l|r}
+\hline
+Model & LRT.p.value & BIC\\
+\hline
+\cellcolor{gray!6}{without interaction} & \cellcolor{gray!6}{} & \cellcolor{gray!6}{14751.51}\\
+\hline
++ quarter x bulk\_purchase & 0.1566 & 14772.17\\
+\hline
+\cellcolor{gray!6}{+ quarter x mgstr2} & \cellcolor{gray!6}{0.4914} & \cellcolor{gray!6}{14820.71}\\
+\hline
++ bulk\_purchase x mgstr2 & 0.1411 & 14771.93\\
+\hline
+\cellcolor{gray!6}{+ quarter x source} & \cellcolor{gray!6}{0.0022} & \cellcolor{gray!6}{14831.35}\\
+\hline
++ bulk\_purchase x source & 0.5854 & 14783.18\\
+\hline
+\cellcolor{gray!6}{+ source x mgstr2} & \cellcolor{gray!6}{0.9947} & \cellcolor{gray!6}{14948.55}\\
+\hline
+\end{tabular}
+\end{table}
+
+\hypertarget{model-diagnostics-1}{%
+\subsubsection{Model Diagnostics}\label{model-diagnostics-1}}
+
+\textbf{Diagnostic plots for model\_g2 (drop one observation with the
+lowest residual in model\_g)}
+
+\textbf{Diagnostic plots for model\_g3 (drop influential states)}
+
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-58-1} \end{center}
+
+\hypertarget{conclusion-1}{%
+\subsection{Conclusion}\label{conclusion-1}}
+
+\hypertarget{fixed-effects-1}{%
+\subsubsection{Fixed Effects}\label{fixed-effects-1}}
+
+\begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-60}Estimates of fixed effects}
+\centering
+\begin{tabular}[t]{l|r|r|r|r|r|r}
+\hline
+  & Estimate & exp(Estimate) & Std. Error & df & t value & Pr(>|t|)\\
+\hline
+\cellcolor{gray!6}{(Intercept)} & \cellcolor{gray!6}{-0.6346} & \cellcolor{gray!6}{0.5301} & \cellcolor{gray!6}{0.0393} & \cellcolor{gray!6}{296.1819} & \cellcolor{gray!6}{-16.1290} & \cellcolor{gray!6}{0.0000}\\
+\hline
+quarter2 & 0.0854 & 1.0891 & 0.0321 & 5550.5948 & 2.6578 & 0.0079\\
+\hline
+\cellcolor{gray!6}{quarter3} & \cellcolor{gray!6}{0.0841} & \cellcolor{gray!6}{1.0877} & \cellcolor{gray!6}{0.0332} & \cellcolor{gray!6}{5555.0726} & \cellcolor{gray!6}{2.5349} & \cellcolor{gray!6}{0.0113}\\
+\hline
+quarter4 & 0.0844 & 1.0881 & 0.0341 & 5551.1650 & 2.4759 & 0.0133\\
+\hline
+\cellcolor{gray!6}{sourceHeard it} & \cellcolor{gray!6}{0.0633} & \cellcolor{gray!6}{1.0653} & \cellcolor{gray!6}{0.0335} & \cellcolor{gray!6}{5556.1197} & \cellcolor{gray!6}{1.8904} & \cellcolor{gray!6}{0.0588}\\
+\hline
+sourceInternet & -0.0041 & 0.9959 & 0.0625 & 5555.5822 & -0.0656 & 0.9477\\
+\hline
+\cellcolor{gray!6}{sourceInternet Pharmacy} & \cellcolor{gray!6}{-0.3227} & \cellcolor{gray!6}{0.7242} & \cellcolor{gray!6}{0.1016} & \cellcolor{gray!6}{5548.9347} & \cellcolor{gray!6}{-3.1743} & \cellcolor{gray!6}{0.0015}\\
+\hline
+sourcePersonal & -0.0398 & 0.9609 & 0.0281 & 5557.7473 & -1.4157 & 0.1569\\
+\hline
+\cellcolor{gray!6}{mgstr22 medium} & \cellcolor{gray!6}{-0.3816} & \cellcolor{gray!6}{0.6827} & \cellcolor{gray!6}{0.0279} & \cellcolor{gray!6}{5549.1951} & \cellcolor{gray!6}{-13.6631} & \cellcolor{gray!6}{0.0000}\\
+\hline
+mgstr23 medium high & -0.7000 & 0.4966 & 0.0365 & 5554.7006 & -19.1836 & 0.0000\\
+\hline
+\cellcolor{gray!6}{mgstr24 high} & \cellcolor{gray!6}{-1.1197} & \cellcolor{gray!6}{0.3264} & \cellcolor{gray!6}{0.0420} & \cellcolor{gray!6}{5559.7107} & \cellcolor{gray!6}{-26.6889} & \cellcolor{gray!6}{0.0000}\\
+\hline
+bulk\_purchase1 Bulk purchase & -0.1141 & 0.8922 & 0.0296 & 5557.9880 & -3.8488 & 0.0001\\
+\hline
+\end{tabular}
+\end{table}
+
+\hypertarget{random-effects-1}{%
+\subsubsection{Random Effects}\label{random-effects-1}}
+
+\begin{longtable}[t]{l|l|l|r|r|r}
+\caption{\label{tab:unnamed-chunk-61}Estimated random intercepts}\\
+\hline
+grpvar & term & grp & condval & condsd & exp(condval)\\
+\hline
+state & (Intercept) & Massachusetts & 0.2063 & 0.0761 & 1.2292\\
+\hline
+state & (Intercept) & New Jersey & 0.1713 & 0.0784 & 1.1869\\
+\hline
+state & (Intercept) & Tennessee & 0.1702 & 0.0611 & 1.1855\\
+\hline
+state & (Intercept) & Maine & 0.1189 & 0.1091 & 1.1263\\
+\hline
+state & (Intercept) & Virginia & 0.1144 & 0.0766 & 1.1212\\
+\hline
+state & (Intercept) & Mississippi & 0.1130 & 0.0984 & 1.1197\\
+\hline
+state & (Intercept) & Louisiana & 0.1127 & 0.0851 & 1.1193\\
+\hline
+state & (Intercept) & Maryland & 0.0953 & 0.0784 & 1.1000\\
+\hline
+state & (Intercept) & West Virginia & 0.0774 & 0.1037 & 1.0805\\
+\hline
+state & (Intercept) & Alaska & 0.0762 & 0.1145 & 1.0792\\
+\hline
+state & (Intercept) & Kansas & 0.0739 & 0.0898 & 1.0767\\
+\hline
+state & (Intercept) & Kentucky & 0.0716 & 0.0843 & 1.0743\\
+\hline
+state & (Intercept) & Oklahoma & 0.0712 & 0.0631 & 1.0738\\
+\hline
+state & (Intercept) & New Hampshire & 0.0697 & 0.1154 & 1.0721\\
+\hline
+state & (Intercept) & Arkansas & 0.0558 & 0.0804 & 1.0573\\
+\hline
+state & (Intercept) & Washington, DC & 0.0546 & 0.1154 & 1.0561\\
+\hline
+state & (Intercept) & Utah & 0.0244 & 0.0908 & 1.0247\\
+\hline
+state & (Intercept) & Nebraska & 0.0221 & 0.0966 & 1.0224\\
+\hline
+state & (Intercept) & Alabama & 0.0181 & 0.0682 & 1.0182\\
+\hline
+state & (Intercept) & Montana & 0.0152 & 0.1083 & 1.0153\\
+\hline
+state & (Intercept) & South Dakota & 0.0152 & 0.1185 & 1.0153\\
+\hline
+state & (Intercept) & Wisconsin & 0.0120 & 0.0726 & 1.0121\\
+\hline
+state & (Intercept) & Iowa & 0.0096 & 0.0839 & 1.0097\\
+\hline
+state & (Intercept) & Rhode Island & 0.0074 & 0.1117 & 1.0074\\
+\hline
+state & (Intercept) & Wyoming & 0.0021 & 0.1175 & 1.0021\\
+\hline
+state & (Intercept) & Florida & -0.0049 & 0.0415 & 0.9951\\
+\hline
+state & (Intercept) & Minnesota & -0.0054 & 0.0867 & 0.9946\\
+\hline
+state & (Intercept) & Indiana & -0.0109 & 0.0655 & 0.9891\\
+\hline
+state & (Intercept) & Washington & -0.0119 & 0.0550 & 0.9881\\
+\hline
+state & (Intercept) & North Dakota & -0.0139 & 0.1207 & 0.9862\\
+\hline
+state & (Intercept) & Missouri & -0.0150 & 0.0657 & 0.9851\\
+\hline
+state & (Intercept) & Colorado & -0.0157 & 0.0677 & 0.9844\\
+\hline
+state & (Intercept) & Oregon & -0.0181 & 0.0615 & 0.9820\\
+\hline
+state & (Intercept) & Pennsylvania & -0.0185 & 0.0523 & 0.9816\\
+\hline
+state & (Intercept) & Idaho & -0.0188 & 0.1051 & 0.9814\\
+\hline
+state & (Intercept) & Texas & -0.0342 & 0.0448 & 0.9663\\
+\hline
+state & (Intercept) & New York & -0.0385 & 0.0564 & 0.9623\\
+\hline
+state & (Intercept) & Ohio & -0.0412 & 0.0573 & 0.9596\\
+\hline
+state & (Intercept) & North Carolina & -0.0444 & 0.0668 & 0.9565\\
+\hline
+state & (Intercept) & Delaware & -0.0548 & 0.1108 & 0.9466\\
+\hline
+state & (Intercept) & New Mexico & -0.0792 & 0.0984 & 0.9239\\
+\hline
+state & (Intercept) & Illinois & -0.0917 & 0.0666 & 0.9124\\
+\hline
+state & (Intercept) & Hawaii & -0.0944 & 0.1009 & 0.9100\\
+\hline
+state & (Intercept) & Nevada & -0.1057 & 0.0664 & 0.8997\\
+\hline
+state & (Intercept) & Georgia & -0.1287 & 0.0629 & 0.8793\\
+\hline
+state & (Intercept) & Connecticut & -0.1363 & 0.0960 & 0.8726\\
+\hline
+state & (Intercept) & South Carolina & -0.1379 & 0.0775 & 0.8712\\
+\hline
+state & (Intercept) & California & -0.2098 & 0.0313 & 0.8107\\
+\hline
+state & (Intercept) & Arizona & -0.2192 & 0.0514 & 0.8031\\
+\hline
+state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
+\hline
+\end{longtable}
+\newpage
+
+\hypertarget{codes}{%
+\subsection{Codes}\label{codes}}
+
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# knitr::opts\_chunk$set(warning=FALSE, message = FALSE, cache = TRUE)}
-\FunctionTok{library}\NormalTok{(tidyverse)}
-\FunctionTok{library}\NormalTok{(janitor)}
-\FunctionTok{library}\NormalTok{(gridExtra)}
-\FunctionTok{library}\NormalTok{(cowplot)}
-\FunctionTok{library}\NormalTok{(knitr)}
-\FunctionTok{require}\NormalTok{(magrittr)}
-\FunctionTok{require}\NormalTok{(dplyr)}
-\FunctionTok{library}\NormalTok{(kableExtra)}
-\FunctionTok{library}\NormalTok{(readr)}
-\FunctionTok{library}\NormalTok{(tidyr)}
-\FunctionTok{library}\NormalTok{(broom)}
-\FunctionTok{library}\NormalTok{(lme4)}
-\FunctionTok{library}\NormalTok{(glmmTMB)}
-\FunctionTok{library}\NormalTok{(sjPlot)}
-\FunctionTok{library}\NormalTok{(brms)}
-\FunctionTok{library}\NormalTok{(coda)}
-\FunctionTok{library}\NormalTok{(rstan)}
-\FunctionTok{library}\NormalTok{(tidybayes)}
-\FunctionTok{library}\NormalTok{(naniar)}
-\FunctionTok{library}\NormalTok{(olsrr)}
-\FunctionTok{library}\NormalTok{(lmerTest)}
-\FunctionTok{require}\NormalTok{(lattice)}
+\NormalTok{knitr}\OperatorTok{::}\NormalTok{opts_chunk}\OperatorTok{$}\KeywordTok{set}\NormalTok{(}\DataTypeTok{warning=}\OtherTok{FALSE}\NormalTok{, }\DataTypeTok{message =} \OtherTok{FALSE}\NormalTok{, }\DataTypeTok{cache =} \OtherTok{TRUE}\NormalTok{)}
+\KeywordTok{library}\NormalTok{(tidyverse)}
+\KeywordTok{library}\NormalTok{(janitor)}
+\KeywordTok{library}\NormalTok{(gridExtra)}
+\KeywordTok{library}\NormalTok{(cowplot)}
+\KeywordTok{library}\NormalTok{(knitr)}
+\KeywordTok{require}\NormalTok{(magrittr)}
+\KeywordTok{require}\NormalTok{(dplyr)}
+\KeywordTok{library}\NormalTok{(kableExtra)}
+\KeywordTok{library}\NormalTok{(readr)}
+\KeywordTok{library}\NormalTok{(tidyr)}
+\KeywordTok{library}\NormalTok{(broom)}
+\KeywordTok{library}\NormalTok{(lme4)}
+\KeywordTok{library}\NormalTok{(glmmTMB)}
+\KeywordTok{library}\NormalTok{(sjPlot)}
+\KeywordTok{library}\NormalTok{(brms)}
+\KeywordTok{library}\NormalTok{(coda)}
+\KeywordTok{library}\NormalTok{(rstan)}
+\KeywordTok{library}\NormalTok{(tidybayes)}
+\KeywordTok{library}\NormalTok{(naniar)}
+\KeywordTok{library}\NormalTok{(olsrr)}
+\KeywordTok{library}\NormalTok{(lmerTest)}
+\KeywordTok{require}\NormalTok{(lattice)}
 
-\CommentTok{\# devtools::install\_github("goodekat/redres")}
-\FunctionTok{library}\NormalTok{(redres)}
+\CommentTok{# devtools::install_github("goodekat/redres")}
+\CommentTok{#library(redres)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{load}\NormalTok{(}\StringTok{\textquotesingle{}streetrx.RData\textquotesingle{}}\NormalTok{)}
+\KeywordTok{load}\NormalTok{(}\StringTok{'streetrx.RData'}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{na\_check }\OtherTok{\textless{}{-}}\NormalTok{ streetrx }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(api\_temp }\SpecialCharTok{==} \StringTok{\textquotesingle{}morphine\textquotesingle{}}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate\_all}\NormalTok{( }\FunctionTok{list}\NormalTok{( }\SpecialCharTok{\textasciitilde{}}\FunctionTok{na\_if}\NormalTok{(., }\StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{) ) ) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{droplevels}\NormalTok{()}
+\NormalTok{na_check <-}\StringTok{ }\NormalTok{streetrx }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(api_temp }\OperatorTok{==}\StringTok{ 'morphine'}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate_all}\NormalTok{( }\KeywordTok{list}\NormalTok{( }\OperatorTok{~}\KeywordTok{na_if}\NormalTok{(., }\StringTok{''}\NormalTok{) ) ) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{droplevels}\NormalTok{()}
 
-\FunctionTok{dim}\NormalTok{(na\_check)}
-\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(na\_check))}
+\KeywordTok{dim}\NormalTok{(na_check)}
+\KeywordTok{sum}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(na_check))}
 
-\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(na\_check}\SpecialCharTok{$}\NormalTok{Primary\_Reason))}
+\KeywordTok{sum}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(na_check}\OperatorTok{$}\NormalTok{Primary_Reason))}
 
-\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(na\_check}\SpecialCharTok{$}\NormalTok{source))}
+\KeywordTok{sum}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(na_check}\OperatorTok{$}\NormalTok{source))}
 
-\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(na\_check))}
+\KeywordTok{sum}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(na_check))}
 
-\FunctionTok{gg\_miss\_upset}\NormalTok{(na\_check)}
+\KeywordTok{gg_miss_upset}\NormalTok{(na_check)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# subset for group drug}
+\CommentTok{# subset for group drug}
 
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ streetrx }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(api\_temp }\SpecialCharTok{==} \StringTok{\textquotesingle{}morphine\textquotesingle{}}\NormalTok{)}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{streetrx }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(api_temp }\OperatorTok{==}\StringTok{ 'morphine'}\NormalTok{)}
 
-\NormalTok{morph\_data}\SpecialCharTok{$}\NormalTok{Primary\_Reason }\OtherTok{\textless{}{-}} \FunctionTok{droplevels}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{Primary\_Reason)}
-\FunctionTok{levels}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{Primary\_Reason)[}\DecValTok{1}\NormalTok{] }\OtherTok{\textless{}{-}} \StringTok{"8 Prefer not to answer"}
-\FunctionTok{levels}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{Primary\_Reason)[}\DecValTok{2}\NormalTok{] }\OtherTok{\textless{}{-}} \StringTok{"8 Prefer not to answer"}
+\NormalTok{morph_data}\OperatorTok{$}\NormalTok{Primary_Reason <-}\StringTok{ }\KeywordTok{droplevels}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{Primary_Reason)}
+\KeywordTok{levels}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{Primary_Reason)[}\DecValTok{1}\NormalTok{] <-}\StringTok{ "8 Prefer not to answer"}
+\KeywordTok{levels}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{Primary_Reason)[}\DecValTok{2}\NormalTok{] <-}\StringTok{ "8 Prefer not to answer"}
 
-\NormalTok{morph\_data}\SpecialCharTok{$}\NormalTok{source }\OtherTok{\textless{}{-}} \FunctionTok{droplevels}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{source)}
-\FunctionTok{levels}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{source)[}\DecValTok{1}\NormalTok{] }\OtherTok{\textless{}{-}} \StringTok{"Blank"}
+\NormalTok{morph_data}\OperatorTok{$}\NormalTok{source <-}\StringTok{ }\KeywordTok{droplevels}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{source)}
+\KeywordTok{levels}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{source)[}\DecValTok{1}\NormalTok{] <-}\StringTok{ "Blank"}
 
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%} 
-  \FunctionTok{filter}\NormalTok{(}\FunctionTok{between}\NormalTok{(ppm, }\FloatTok{0.000001}\NormalTok{, }\DecValTok{10}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate\_all}\NormalTok{( }\FunctionTok{list}\NormalTok{( }\SpecialCharTok{\textasciitilde{}}\FunctionTok{na\_if}\NormalTok{(., }\StringTok{\textquotesingle{}\textquotesingle{}}\NormalTok{) ) ) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{drop\_na}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{clean\_names}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}
-    \AttributeTok{quarter=}\FunctionTok{substring}\NormalTok{(yq\_pdate, }\DecValTok{5}\NormalTok{, }\DecValTok{5}\NormalTok{),}
-    \AttributeTok{year=}\FunctionTok{substring}\NormalTok{(yq\_pdate, }\DecValTok{1}\NormalTok{, }\DecValTok{4}\NormalTok{),}
-    \AttributeTok{state=}\FunctionTok{recode\_factor}\NormalTok{(}\FunctionTok{droplevels}\NormalTok{(state), }\StringTok{\textquotesingle{}USA\textquotesingle{}}\OtherTok{=}\StringTok{\textquotesingle{}Unknown\textquotesingle{}}\NormalTok{)}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\KeywordTok{between}\NormalTok{(ppm, }\FloatTok{0.000001}\NormalTok{, }\DecValTok{10}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate_all}\NormalTok{( }\KeywordTok{list}\NormalTok{( }\OperatorTok{~}\KeywordTok{na_if}\NormalTok{(., }\StringTok{''}\NormalTok{) ) ) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{drop_na}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{clean_names}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}
+    \DataTypeTok{quarter=}\KeywordTok{substring}\NormalTok{(yq_pdate, }\DecValTok{5}\NormalTok{, }\DecValTok{5}\NormalTok{),}
+    \DataTypeTok{year=}\KeywordTok{substring}\NormalTok{(yq_pdate, }\DecValTok{1}\NormalTok{, }\DecValTok{4}\NormalTok{),}
+    \DataTypeTok{state=}\KeywordTok{recode_factor}\NormalTok{(}\KeywordTok{droplevels}\NormalTok{(state), }\StringTok{'USA'}\NormalTok{=}\StringTok{'Unknown'}\NormalTok{)}
 \NormalTok{  ) }
 
-\FunctionTok{nrow}\NormalTok{(morph\_data)}
+\KeywordTok{nrow}\NormalTok{(morph_data)}
 
-\FunctionTok{sum}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{ppm }\SpecialCharTok{\textless{}=}\DecValTok{0}\NormalTok{)}
+\KeywordTok{sum}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{ppm }\OperatorTok{<=}\DecValTok{0}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# remove extreme outliers based on quantiles}
+\CommentTok{# remove extreme outliers based on quantiles}
 
-\CommentTok{\# untransformed density}
-\NormalTok{p1 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{ppm)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_histogram}\NormalTok{(}
-      \FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\NormalTok{..density..), }
-      \AttributeTok{color=}\StringTok{\textquotesingle{}black\textquotesingle{}}\NormalTok{, }
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{fill=}\StringTok{\textquotesingle{}lightblue\textquotesingle{}}\NormalTok{, }
-      \AttributeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{bins=}\DecValTok{20}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{geom\_density}\NormalTok{(}\AttributeTok{size=}\FloatTok{0.75}\NormalTok{, }\AttributeTok{bw=}\FloatTok{0.3}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Distribution of morphine ppm\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
+\CommentTok{# untransformed density}
+\NormalTok{p1 <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{ppm)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_histogram}\NormalTok{(}
+      \KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\NormalTok{..density..), }
+      \DataTypeTok{color=}\StringTok{'black'}\NormalTok{, }
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{fill=}\StringTok{'lightblue'}\NormalTok{, }
+      \DataTypeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{bins=}\DecValTok{20}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_density}\NormalTok{(}\DataTypeTok{size=}\FloatTok{0.75}\NormalTok{, }\DataTypeTok{bw=}\FloatTok{0.3}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 1: Distribution of morphine ppm"}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
 
-\CommentTok{\# log{-}transformed density}
-\NormalTok{p2 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-    \FunctionTok{geom\_histogram}\NormalTok{(}
-      \FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\NormalTok{..density..), }
-      \AttributeTok{color=}\StringTok{\textquotesingle{}black\textquotesingle{}}\NormalTok{, }
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{fill=}\StringTok{\textquotesingle{}lightcoral\textquotesingle{}}\NormalTok{, }
-      \AttributeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{bins=}\DecValTok{20}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{geom\_density}\NormalTok{(}\AttributeTok{size=}\FloatTok{0.75}\NormalTok{, }\AttributeTok{bw=}\FloatTok{0.3}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Distribution of morphine log(ppm)\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{xlim}\NormalTok{(}\SpecialCharTok{{-}}\DecValTok{7}\NormalTok{, }\DecValTok{3}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
 
-\FunctionTok{grid.arrange}\NormalTok{(p1, p2, }\AttributeTok{ncol=}\DecValTok{2}\NormalTok{)}
+
+\CommentTok{# log-transformed density}
+\NormalTok{p2 <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_histogram}\NormalTok{(}
+      \KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\NormalTok{..density..), }
+      \DataTypeTok{color=}\StringTok{'black'}\NormalTok{, }
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{fill=}\StringTok{'lightcoral'}\NormalTok{, }
+      \DataTypeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{bins=}\DecValTok{20}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_density}\NormalTok{(}\DataTypeTok{size=}\FloatTok{0.75}\NormalTok{, }\DataTypeTok{bw=}\FloatTok{0.3}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{xlim}\NormalTok{(}\OperatorTok{-}\DecValTok{7}\NormalTok{, }\DecValTok{3}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 2: Distribution of morphine log(ppm)"}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+
+\KeywordTok{grid.arrange}\NormalTok{(p1, p2, }\DataTypeTok{ncol=}\DecValTok{2}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{city))}
-\FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{state))}
-\FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{usa\_region))}
+\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{city))}
+\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{state))}
+\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{usa_region))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{state\_size }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{group\_by}\NormalTok{(state) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{n =} \FunctionTok{n}\NormalTok{(), }\AttributeTok{.groups =} \StringTok{"drop"}\NormalTok{)  }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{arrange}\NormalTok{(n) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{pivot\_wider}\NormalTok{(}
-    \AttributeTok{names\_from=}\NormalTok{state,}
-    \AttributeTok{values\_from=}\NormalTok{n}
+\NormalTok{state_size <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(state) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{summarise}\NormalTok{(}\DataTypeTok{n =} \KeywordTok{n}\NormalTok{(), }\DataTypeTok{.groups =} \StringTok{"drop"}\NormalTok{)  }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{arrange}\NormalTok{(n) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{pivot_wider}\NormalTok{(}
+    \DataTypeTok{names_from=}\NormalTok{state,}
+    \DataTypeTok{values_from=}\NormalTok{n}
 \NormalTok{  )}
 
-\NormalTok{state\_size }\SpecialCharTok{\%\textgreater{}\%} 
-\NormalTok{  dplyr}\SpecialCharTok{::}\FunctionTok{select}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{5}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{(}
-    \AttributeTok{caption =} \StringTok{\textquotesingle{}5 States with Smallest Sample Size\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{align=}\StringTok{\textquotesingle{}c\textquotesingle{}}\NormalTok{, }
-    \AttributeTok{booktabs=}\ConstantTok{TRUE}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable\_styling}\NormalTok{(}\AttributeTok{latex\_options =} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}hold\_position\textquotesingle{}}\NormalTok{))}
+\NormalTok{state_size }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}\DecValTok{1}\OperatorTok{:}\DecValTok{5}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(}
+    \DataTypeTok{caption =} \StringTok{'5 States with Smallest Sample Size'}\NormalTok{,}
+    \DataTypeTok{align=}\StringTok{'c'}\NormalTok{, }
+    \DataTypeTok{booktabs=}\OtherTok{TRUE}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{'hold_position'}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# remove low sample size states}
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{state=}\FunctionTok{as.character}\NormalTok{(state)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\NormalTok{state }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}
-    \StringTok{\textquotesingle{}Puerto Rico\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Vermont\textquotesingle{}}
+\CommentTok{# remove low sample size states}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{state=}\KeywordTok{as.character}\NormalTok{(state)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\OperatorTok{!}\NormalTok{state }\OperatorTok{%in%}\StringTok{ }\KeywordTok{c}\NormalTok{(}
+    \StringTok{'Puerto Rico'}\NormalTok{, }\StringTok{'Vermont'}
 \NormalTok{  ))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{morph\_state }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(state }\SpecialCharTok{\%in\%}\NormalTok{ state.name) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{state\_abv=}\NormalTok{state.abb[}\FunctionTok{match}\NormalTok{(state,state.name)])}
+\NormalTok{morph_state <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(state }\OperatorTok{%in%}\StringTok{ }\NormalTok{state.name) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{state_abv=}\NormalTok{state.abb[}\KeywordTok{match}\NormalTok{(state,state.name)])}
 
 
-\NormalTok{grand\_mean }\OtherTok{\textless{}{-}} \FunctionTok{mean}\NormalTok{(morph\_state}\SpecialCharTok{$}\NormalTok{ppm)}
+\NormalTok{grand_mean <-}\StringTok{ }\KeywordTok{mean}\NormalTok{(morph_state}\OperatorTok{$}\NormalTok{ppm)}
 
-\NormalTok{p3 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_state }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{group\_by}\NormalTok{(state\_abv) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{n =} \FunctionTok{n}\NormalTok{(), }\AttributeTok{mean =} \FunctionTok{mean}\NormalTok{(ppm)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{n, }\AttributeTok{y=}\NormalTok{mean)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_hline}\NormalTok{(}
-      \FunctionTok{aes}\NormalTok{(}\AttributeTok{yintercept=}\NormalTok{grand\_mean),}
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\FloatTok{0.75}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}\AttributeTok{x=}\StringTok{\textquotesingle{}sample size\textquotesingle{}}\NormalTok{, }\AttributeTok{y=}\StringTok{\textquotesingle{}mean log(ppm)\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{p3 <-}\StringTok{ }\NormalTok{morph_state }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(state_abv) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{summarise}\NormalTok{(}\DataTypeTok{n =} \KeywordTok{n}\NormalTok{(), }\DataTypeTok{mean =} \KeywordTok{mean}\NormalTok{(ppm)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{n, }\DataTypeTok{y=}\NormalTok{mean)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_hline}\NormalTok{(}
+      \KeywordTok{aes}\NormalTok{(}\DataTypeTok{yintercept=}\NormalTok{grand_mean),}
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_point}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x=}\StringTok{'sample size'}\NormalTok{, }\DataTypeTok{y=}\StringTok{'mean log(ppm)'}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 3: Group mean vs. sample size"}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
 
 
-\NormalTok{p4 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_state }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\FunctionTok{log}\NormalTok{(ppm), }\AttributeTok{x=}\NormalTok{state\_abv)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_boxplot}\NormalTok{(}
-      \AttributeTok{fill=}\FunctionTok{rainbow}\NormalTok{(}\DecValTok{49}\NormalTok{),}
-      \AttributeTok{alpha=}\FloatTok{0.5}    
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{scale\_x\_discrete}\NormalTok{(}\AttributeTok{guide=}\FunctionTok{guide\_axis}\NormalTok{(}\AttributeTok{angle =} \DecValTok{90}\NormalTok{)) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}\AttributeTok{x=}\StringTok{\textquotesingle{}state\textquotesingle{}}\NormalTok{)}
+\NormalTok{p4 <-}\StringTok{ }\NormalTok{morph_state }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{x=}\NormalTok{state_abv)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_boxplot}\NormalTok{(}
+      \DataTypeTok{fill=}\KeywordTok{rainbow}\NormalTok{(}\DecValTok{49}\NormalTok{),}
+      \DataTypeTok{alpha=}\FloatTok{0.5}    
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{scale_x_discrete}\NormalTok{(}\DataTypeTok{guide=}\KeywordTok{guide_axis}\NormalTok{(}\DataTypeTok{angle =} \DecValTok{90}\NormalTok{)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 4: Boxplot of log(pmm) across states"}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x=}\StringTok{'state'}\NormalTok{)}
 
-\NormalTok{cowplot}\SpecialCharTok{::}\FunctionTok{plot\_grid}\NormalTok{(p3, p4, }\AttributeTok{rel\_widths =} \FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+\NormalTok{cowplot}\OperatorTok{::}\KeywordTok{plot_grid}\NormalTok{(p3, p4, }\DataTypeTok{rel_widths =} \KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{, }\DecValTok{2}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{t1 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_state }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{group\_by}\NormalTok{(usa\_region) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{n=}\FunctionTok{n}\NormalTok{(), }\AttributeTok{mean=}\FunctionTok{round}\NormalTok{(}\FunctionTok{mean}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm)), }\DecValTok{3}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{tableGrob}\NormalTok{()}
+\NormalTok{t1 <-}\StringTok{ }\NormalTok{morph_state }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(usa_region) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{summarise}\NormalTok{(}\DataTypeTok{n=}\KeywordTok{n}\NormalTok{(), }\DataTypeTok{mean=}\KeywordTok{round}\NormalTok{(}\KeywordTok{mean}\NormalTok{(}\KeywordTok{log}\NormalTok{(ppm)), }\DecValTok{3}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{tableGrob}\NormalTok{()}
 
-\NormalTok{p5 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_state }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\FunctionTok{log}\NormalTok{(ppm), }\AttributeTok{x=}\NormalTok{usa\_region)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{stat\_summary}\NormalTok{(}
-      \AttributeTok{fun.y=}\NormalTok{mean, }
-      \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\DecValTok{3}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{p5 <-}\StringTok{ }\NormalTok{morph_state }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{x=}\NormalTok{usa_region)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{stat_summary}\NormalTok{(}
+      \DataTypeTok{fun.y=}\NormalTok{mean, }
+      \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+      \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+      \DataTypeTok{size=}\DecValTok{3}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 5: Boxplot of log(pmm) across regions"}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{)) }
 
-\FunctionTok{grid.arrange}\NormalTok{(t1, p5, }\AttributeTok{ncol=}\DecValTok{2}\NormalTok{, }\AttributeTok{widths=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+\KeywordTok{grid.arrange}\NormalTok{(t1, p5, }\DataTypeTok{ncol=}\DecValTok{2}\NormalTok{, }\DataTypeTok{widths=}\KeywordTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{, }\DecValTok{2}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{min}\NormalTok{(}\FunctionTok{as.Date}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{price\_date, }\StringTok{"\%m/\%d/\%y"}\NormalTok{)) }\CommentTok{\#2013{-}01{-}01}
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{group\_by}\NormalTok{(year) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{summarise}\NormalTok{(}\AttributeTok{n =} \FunctionTok{n}\NormalTok{())}
+\KeywordTok{min}\NormalTok{(}\KeywordTok{as.Date}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{price_date, }\StringTok{"%m/%d/%y"}\NormalTok{)) }\CommentTok{#2013-01-01}
+\NormalTok{morph_data }\OperatorTok{%>%}\StringTok{ }\KeywordTok{group_by}\NormalTok{(year) }\OperatorTok{%>%}\StringTok{ }\KeywordTok{summarise}\NormalTok{(}\DataTypeTok{n =} \KeywordTok{n}\NormalTok{())}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# remove data prior to 2010}
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Year=}\FunctionTok{as.character}\NormalTok{(year)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\NormalTok{year }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}
+\CommentTok{# remove data prior to 2010}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{Year=}\KeywordTok{as.character}\NormalTok{(year)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\OperatorTok{!}\NormalTok{year }\OperatorTok{%in%}\StringTok{ }\KeywordTok{c}\NormalTok{(}
     \DecValTok{1969}\NormalTok{, }\DecValTok{2000}\NormalTok{, }\DecValTok{2002}\NormalTok{, }\DecValTok{2005}
 \NormalTok{  ))}
 \end{Highlighting}
@@ -776,10 +1117,10 @@ source, with low dosage strength, and not purchased in bulk
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# date\_diff}
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{date\_diff =} \FunctionTok{as.numeric}\NormalTok{(}
-    \FunctionTok{as.Date}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{price\_date, }\StringTok{"\%m/\%d/\%y"}\NormalTok{) }\SpecialCharTok{{-}} \FunctionTok{as.Date}\NormalTok{(}\StringTok{"2010{-}01{-}01"}\NormalTok{)}
+\CommentTok{# date_diff}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{date_diff =} \KeywordTok{as.numeric}\NormalTok{(}
+    \KeywordTok{as.Date}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{price_date, }\StringTok{"%m/%d/%y"}\NormalTok{) }\OperatorTok{-}\StringTok{ }\KeywordTok{as.Date}\NormalTok{(}\StringTok{"2010-01-01"}\NormalTok{)}
 \NormalTok{    )}
 \NormalTok{  )}
 \end{Highlighting}
@@ -787,676 +1128,662 @@ source, with low dosage strength, and not purchased in bulk
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{date\_diff)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_histogram}\NormalTok{(}
-      \FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\NormalTok{..density..),}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}black\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{fill=}\StringTok{\textquotesingle{}lightblue\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{bins=}\DecValTok{30}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{geom\_density}\NormalTok{(}\AttributeTok{size=}\FloatTok{0.75}\NormalTok{, }\AttributeTok{bw=}\DecValTok{100}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}Date Distribution\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{date_diff)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_histogram}\NormalTok{(}
+      \KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\NormalTok{..density..), }
+      \DataTypeTok{color=}\StringTok{'black'}\NormalTok{, }
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{fill=}\StringTok{'lightblue'}\NormalTok{, }
+      \DataTypeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{bins=}\DecValTok{30}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_density}\NormalTok{(}\DataTypeTok{size=}\FloatTok{0.75}\NormalTok{, }\DataTypeTok{bw=}\DecValTok{100}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Date Distribution"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{)) }
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{date\_diff, }\AttributeTok{y=}\FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-    \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{geom\_smooth}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
-
-\CommentTok{\# check for random slopes}
-\CommentTok{\# morph\_data\_a \textless{}{-} subset(morph\_data,state \%in\% c("Arizona", "Texas","California", "Pennsylvania"))}
-\CommentTok{\# morph\_data\_a \%\textgreater{}\% ggplot(aes(x = date\_diff, y = log(ppm))) +}
-\CommentTok{\#   geom\_point() +}
-\CommentTok{\#   geom\_smooth() +}
-\CommentTok{\#  theme\_bw() +}
-\CommentTok{\#   facet\_wrap(\textquotesingle{}state\textquotesingle{}, scales = "fixed")}
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{date_diff, }\DataTypeTok{y=}\KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_point}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_smooth}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme_bw}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{yearplot }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ year,}\AttributeTok{y =} \FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x=}\StringTok{\textquotesingle{}Year\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{stat\_summary}\NormalTok{(}
-    \AttributeTok{fun.y=}\NormalTok{mean,}
-    \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{size=}\DecValTok{3}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{yearplot <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ year,}\DataTypeTok{y =} \KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x=}\StringTok{'Year'}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{stat_summary}\NormalTok{(}
+    \DataTypeTok{fun.y=}\NormalTok{mean, }
+    \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+    \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+    \DataTypeTok{size=}\DecValTok{3}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 6: log(pmm) vs. years"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{)) }
+
+
+
+\NormalTok{quarterplot <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ quarter,}\DataTypeTok{y =} \KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}
+    \DataTypeTok{x=}\StringTok{'Quarter'}\NormalTok{,}
+    \DataTypeTok{y=}\StringTok{''}
+\NormalTok{  )  }\OperatorTok{+}
+\StringTok{  }\KeywordTok{stat_summary}\NormalTok{(}
+    \DataTypeTok{fun.y=}\NormalTok{mean, }
+    \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+    \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+    \DataTypeTok{size=}\DecValTok{3}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 7: log(pmm) vs. quarters"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+
+\KeywordTok{grid.arrange}\NormalTok{(yearplot, quarterplot, }\DataTypeTok{ncol=}\DecValTok{2}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{quarterplot }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ quarter,}\AttributeTok{y =} \FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}
-    \AttributeTok{x=}\StringTok{\textquotesingle{}Quarter\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{y=}\StringTok{\textquotesingle{}\textquotesingle{}}
-\NormalTok{  )  }\SpecialCharTok{+}
-  \FunctionTok{stat\_summary}\NormalTok{(}
-    \AttributeTok{fun.y=}\NormalTok{mean,}
-    \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{size=}\DecValTok{3}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{plot1 <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ bulk_purchase,}\DataTypeTok{y =} \KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x=}\StringTok{'Bulk Purchase'}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{stat_summary}\NormalTok{(}
+    \DataTypeTok{fun.y=}\NormalTok{mean, }
+    \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+    \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+    \DataTypeTok{size=}\DecValTok{3}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 8: log(pmm) vs. bulk purchase"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
 
-\FunctionTok{grid.arrange}\NormalTok{(yearplot, quarterplot, }\AttributeTok{ncol=}\DecValTok{2}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ bulk\_purchase,}\AttributeTok{y =} \FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x=}\StringTok{\textquotesingle{}Bulk Purchase\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-  \FunctionTok{stat\_summary}\NormalTok{(}
-    \AttributeTok{fun.y=}\NormalTok{mean,}
-    \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{size=}\DecValTok{3}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
-\end{Highlighting}
-\end{Shaded}
+\CommentTok{# unique(morph_data$source)}
 
-\begin{Shaded}
-\begin{Highlighting}[]
-\CommentTok{\# unique(morph\_data$source)}
-
-\CommentTok{\# combine internet levels into single level}
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{source=}\FunctionTok{replace}\NormalTok{(}
-\NormalTok{    source, }\SpecialCharTok{!}\NormalTok{source }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}
+\CommentTok{# combine internet levels into single level}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{source=}\KeywordTok{replace}\NormalTok{(}
+\NormalTok{    source, }\OperatorTok{!}\NormalTok{source }\OperatorTok{%in%}\StringTok{ }\KeywordTok{c}\NormalTok{(}
       \StringTok{"Blank"}\NormalTok{,}
-      \StringTok{\textquotesingle{}Personal\textquotesingle{}}\NormalTok{,}
-      \StringTok{\textquotesingle{}Heard it\textquotesingle{}}\NormalTok{,}
-      \StringTok{\textquotesingle{}Internet\textquotesingle{}}\NormalTok{,}
-      \StringTok{\textquotesingle{}Internet Pharmacy\textquotesingle{}}\NormalTok{,}
-      \StringTok{\textquotesingle{}Drug forum\textquotesingle{}}
-\NormalTok{    ), }\StringTok{\textquotesingle{}Internet\textquotesingle{}}
-\NormalTok{  )) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{droplevels}\NormalTok{()}
+      \StringTok{'Personal'}\NormalTok{,}
+      \StringTok{'Heard it'}\NormalTok{, }
+      \StringTok{'Internet'}\NormalTok{, }
+      \StringTok{'Internet Pharmacy'}\NormalTok{, }
+      \StringTok{'Drug forum'}
+\NormalTok{    ), }\StringTok{'Internet'}
+\NormalTok{  )) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{droplevels}\NormalTok{()}
 
 
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{source=}\FunctionTok{as.character}\NormalTok{(source)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(source }\SpecialCharTok{!=} \StringTok{"Drug forum"}\NormalTok{)}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{source=}\KeywordTok{as.character}\NormalTok{(source)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(source }\OperatorTok{!=}\StringTok{ "Drug forum"}\NormalTok{)}
 
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ source,}\AttributeTok{y =} \FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{stat\_summary}\NormalTok{(}
-    \AttributeTok{fun.y=}\NormalTok{mean,}
-    \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{size=}\DecValTok{2}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{plot2 <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ source,}\DataTypeTok{y =} \KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{stat_summary}\NormalTok{(}
+    \DataTypeTok{fun.y=}\NormalTok{mean, }
+    \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+    \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+    \DataTypeTok{size=}\DecValTok{2}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Figure 9: log(pmm) vs. source"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
 
 
-\CommentTok{\# morph\_data \%\textgreater{}\%}
-\CommentTok{\#   group\_by(source) \%\textgreater{}\%}
-\CommentTok{\#   summarize(n =n())}
+\KeywordTok{grid.arrange}\NormalTok{(plot1, plot2, }\DataTypeTok{ncol =}\DecValTok{2}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ primary\_reason,}\AttributeTok{y =}\FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{coord\_flip}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \StringTok{"log(ppm)"}\NormalTok{, }\AttributeTok{y =} \StringTok{"Reason"}\NormalTok{)  }\SpecialCharTok{+}
-    \FunctionTok{stat\_summary}\NormalTok{(}
-      \AttributeTok{fun.y=}\NormalTok{mean,}
-      \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\DecValTok{3}
-\NormalTok{    ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{mgstr, }\DataTypeTok{y=}\KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_point}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_smooth}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme_bw}\NormalTok{()}
+
+\CommentTok{# morph_data %>%}
+\CommentTok{#   ggplot(aes(x=log(mgstr), y=log(ppm))) +}
+\CommentTok{#     geom_point() +}
+\CommentTok{#     geom_smooth() +}
+\CommentTok{#     theme_bw()}
+
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{mgstr)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_histogram}\NormalTok{(}
+      \KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\NormalTok{..density..), }
+      \DataTypeTok{color=}\StringTok{'black'}\NormalTok{, }
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{fill=}\StringTok{'lightblue'}\NormalTok{, }
+      \DataTypeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
+      \DataTypeTok{bins=}\DecValTok{10}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_density}\NormalTok{(}\DataTypeTok{size=}\FloatTok{0.75}\NormalTok{, }\DataTypeTok{bw=}\FloatTok{7.5}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{title=}\StringTok{'mgstr Distribution'}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{title=}\StringTok{'log(pmm) vs. sources'}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme_bw}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{mgstr, }\AttributeTok{y=}\FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-    \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{geom\_smooth}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
-
-\CommentTok{\# morph\_data \%\textgreater{}\%}
-\CommentTok{\#   ggplot(aes(x=log(mgstr), y=log(ppm))) +}
-\CommentTok{\#     geom\_point() +}
-\CommentTok{\#     geom\_smooth() +}
-\CommentTok{\#     theme\_bw()}
-
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{mgstr)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_histogram}\NormalTok{(}
-      \FunctionTok{aes}\NormalTok{(}\AttributeTok{y=}\NormalTok{..density..),}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}black\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{fill=}\StringTok{\textquotesingle{}lightblue\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{alpha=}\FloatTok{0.5}\NormalTok{,}
-      \AttributeTok{bins=}\DecValTok{10}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{geom\_density}\NormalTok{(}\AttributeTok{size=}\FloatTok{0.75}\NormalTok{, }\AttributeTok{bw=}\FloatTok{7.5}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}\AttributeTok{title=}\StringTok{\textquotesingle{}mgstr Distribution\textquotesingle{}}\NormalTok{) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
+\CommentTok{# check for random slopes}
+\NormalTok{morph_data }\OperatorTok{%>%}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ mgstr, }\DataTypeTok{y =} \KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_point}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_smooth}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme_bw}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(}\StringTok{'usa_region'}\NormalTok{, }\DataTypeTok{scales =} \StringTok{"fixed"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# check for random slopes}
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ mgstr, }\AttributeTok{y =} \FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{geom\_smooth}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{facet\_wrap}\NormalTok{(}\StringTok{\textquotesingle{}usa\_region\textquotesingle{}}\NormalTok{, }\AttributeTok{scales =} \StringTok{"fixed"}\NormalTok{)}
+\NormalTok{morph_data }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(mgstr) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{summarize}\NormalTok{(}\DataTypeTok{n =} \KeywordTok{n}\NormalTok{()) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{pivot_wider}\NormalTok{(}
+    \DataTypeTok{names_from=}\NormalTok{mgstr,}
+    \DataTypeTok{values_from=}\NormalTok{n}
+\NormalTok{  ) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(}
+    \DataTypeTok{caption=}\StringTok{'Sample Size for mgstr Levels'}\NormalTok{,}
+    \DataTypeTok{align=}\StringTok{'c'}\NormalTok{, }
+    \DataTypeTok{booktabs=}\OtherTok{TRUE}
+\NormalTok{  ) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{'hold_position'}\NormalTok{))}
+
+\CommentTok{# inspect mgstr value quantiles}
+\KeywordTok{quantile}\NormalTok{(morph_data}\OperatorTok{$}\NormalTok{mgstr, }\KeywordTok{c}\NormalTok{(}\FloatTok{0.25}\NormalTok{, }\FloatTok{0.5}\NormalTok{, }\FloatTok{0.75}\NormalTok{)) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{data.frame}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{rename}\NormalTok{(}\StringTok{'mgstr'}\NormalTok{=}\StringTok{'.'}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{()}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{group\_by}\NormalTok{(mgstr) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{summarize}\NormalTok{(}\AttributeTok{n =} \FunctionTok{n}\NormalTok{()) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{pivot\_wider}\NormalTok{(}
-    \AttributeTok{names\_from=}\NormalTok{mgstr,}
-    \AttributeTok{values\_from=}\NormalTok{n}
-\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{(}
-    \AttributeTok{caption=}\StringTok{\textquotesingle{}Sample Size for mgstr Levels\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{align=}\StringTok{\textquotesingle{}c\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{booktabs=}\ConstantTok{TRUE}
-\NormalTok{  ) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable\_styling}\NormalTok{(}\AttributeTok{latex\_options =} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}hold\_position\textquotesingle{}}\NormalTok{))}
-
-\CommentTok{\# inspect mgstr value quantiles}
-\FunctionTok{quantile}\NormalTok{(morph\_data}\SpecialCharTok{$}\NormalTok{mgstr, }\FunctionTok{c}\NormalTok{(}\FloatTok{0.25}\NormalTok{, }\FloatTok{0.5}\NormalTok{, }\FloatTok{0.75}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{data.frame}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{rename}\NormalTok{(}\StringTok{\textquotesingle{}mgstr\textquotesingle{}}\OtherTok{=}\StringTok{\textquotesingle{}.\textquotesingle{}}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{()}
-
-\DocumentationTok{\#\# here we decide to re{-}code mgstr by quantile}
-\NormalTok{morph\_data }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{mgstr2 =} \FunctionTok{case\_when}\NormalTok{(}
-\NormalTok{    mgstr }\SpecialCharTok{\textless{}=} \DecValTok{15}              \SpecialCharTok{\textasciitilde{}} \StringTok{"1 low"}\NormalTok{,}
-\NormalTok{    mgstr }\SpecialCharTok{\textgreater{}}\DecValTok{15} \SpecialCharTok{\&}\NormalTok{ mgstr }\SpecialCharTok{\textless{}=} \DecValTok{30}  \SpecialCharTok{\textasciitilde{}} \StringTok{"2 medium"}\NormalTok{,}
-\NormalTok{    mgstr }\SpecialCharTok{\textgreater{}}\DecValTok{30} \SpecialCharTok{\&}\NormalTok{ mgstr }\SpecialCharTok{\textless{}=} \DecValTok{60}  \SpecialCharTok{\textasciitilde{}} \StringTok{"3 medium high"}\NormalTok{,}
-\NormalTok{    mgstr }\SpecialCharTok{\textgreater{}} \DecValTok{60}            \SpecialCharTok{\textasciitilde{}} \StringTok{"4 high"}\NormalTok{)}
+\CommentTok{## here we decide to re-code mgstr by quantile}
+\NormalTok{morph_data <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{mgstr2 =} \KeywordTok{case_when}\NormalTok{(}
+\NormalTok{    mgstr }\OperatorTok{<=}\StringTok{ }\DecValTok{15}              \OperatorTok{~}\StringTok{ "1 low"}\NormalTok{,}
+\NormalTok{    mgstr }\OperatorTok{>}\DecValTok{15} \OperatorTok{&}\StringTok{ }\NormalTok{mgstr }\OperatorTok{<=}\StringTok{ }\DecValTok{30}  \OperatorTok{~}\StringTok{ "2 medium"}\NormalTok{,}
+\NormalTok{    mgstr }\OperatorTok{>}\DecValTok{30} \OperatorTok{&}\StringTok{ }\NormalTok{mgstr }\OperatorTok{<=}\StringTok{ }\DecValTok{60}  \OperatorTok{~}\StringTok{ "3 medium high"}\NormalTok{,}
+\NormalTok{    mgstr }\OperatorTok{>}\StringTok{ }\DecValTok{60}            \OperatorTok{~}\StringTok{ "4 high"}\NormalTok{)}
 \NormalTok{  )}
 
-\NormalTok{morph\_data }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{mgstr2 ,}\AttributeTok{y=}\FunctionTok{log}\NormalTok{(ppm))) }\SpecialCharTok{+}
-  \FunctionTok{geom\_boxplot}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}\AttributeTok{y=}\StringTok{"log(ppm)"}\NormalTok{, }\AttributeTok{x=}\StringTok{"Strength"}\NormalTok{)  }\SpecialCharTok{+}
-  \FunctionTok{stat\_summary}\NormalTok{(}
-    \AttributeTok{fun.y=}\NormalTok{mean,}
-    \AttributeTok{geom=}\StringTok{\textquotesingle{}point\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{size=}\DecValTok{3}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
+\NormalTok{plot1 <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{mgstr2 ,}\DataTypeTok{y=}\KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{y=}\StringTok{"log(ppm)"}\NormalTok{, }\DataTypeTok{x=}\StringTok{"Strength"}\NormalTok{)  }\OperatorTok{+}
+\StringTok{  }\KeywordTok{stat_summary}\NormalTok{(}
+    \DataTypeTok{fun.y=}\NormalTok{mean, }
+    \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+    \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+    \DataTypeTok{size=}\DecValTok{3}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. strength"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
 
-\CommentTok{\# jpeg("EDAplotStrength.jpg", width = 500, height = 300)}
-\CommentTok{\# dev.off()}
+
+\NormalTok{plot2 <-}\StringTok{ }\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ primary_reason,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm))) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{coord_flip}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"log(ppm)"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"Reason"}\NormalTok{)  }\OperatorTok{+}
+\StringTok{    }\KeywordTok{stat_summary}\NormalTok{(}
+      \DataTypeTok{fun.y=}\NormalTok{mean, }
+      \DataTypeTok{geom=}\StringTok{'point'}\NormalTok{,}
+      \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+      \DataTypeTok{size=}\DecValTok{3}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. reasons"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+
+\KeywordTok{grid.arrange}\NormalTok{(}\KeywordTok{arrangeGrob}\NormalTok{(plot1, }\DataTypeTok{ncol=}\DecValTok{1}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{1}\NormalTok{),}
+             \KeywordTok{arrangeGrob}\NormalTok{(plot2, }\DataTypeTok{ncol=}\DecValTok{1}\NormalTok{, }\DataTypeTok{nrow=}\DecValTok{1}\NormalTok{), }\DataTypeTok{widths=}\KeywordTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{2}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{interaction-plot}{%
+\subsection{Interaction Plot}\label{interaction-plot}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ mgstr2,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ bulk_purchase)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{coord_flip}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"log(ppm)"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"Strength"}\NormalTok{)  }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. bulk purchase x strength"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ mgstr2,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ quarter)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{coord_flip}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"log(ppm)"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"Strength"}\NormalTok{)  }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. quarter x strength"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ primary_reason,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ bulk_purchase)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{coord_flip}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"Primary Reason"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"log(ppm)"}\NormalTok{)  }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. bulk purchase x primary reason"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-3.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{morph_data }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ primary_reason,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ quarter)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{coord_flip}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"Primary Reason"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"log(ppm)"}\NormalTok{)  }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. quarter x primary reason"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-4.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# group by city}
+\NormalTok{mod_}\DecValTok{1}\NormalTok{ <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\DataTypeTok{data=}\NormalTok{morph_data, }\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\NormalTok{city), }\DataTypeTok{REML=}\NormalTok{F)}
+
+\CommentTok{# group by state}
+\NormalTok{mod_}\DecValTok{2}\NormalTok{ <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\DataTypeTok{data=}\NormalTok{morph_data, }\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\NormalTok{state), }\DataTypeTok{REML=}\NormalTok{F)}
+
+\CommentTok{# group by region}
+\NormalTok{mod_}\DecValTok{3}\NormalTok{ <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\DataTypeTok{data=}\NormalTok{morph_data, }\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\NormalTok{usa_region), }\DataTypeTok{REML=}\NormalTok{F)}
+
+\NormalTok{aic_score <-}\StringTok{ }\KeywordTok{sapply}\NormalTok{(}\KeywordTok{c}\NormalTok{(mod_}\DecValTok{1}\NormalTok{, mod_}\DecValTok{2}\NormalTok{, mod_}\DecValTok{3}\NormalTok{), AIC)}
+\NormalTok{bic_score <-}\StringTok{ }\KeywordTok{sapply}\NormalTok{(}\KeywordTok{c}\NormalTok{(mod_}\DecValTok{1}\NormalTok{, mod_}\DecValTok{2}\NormalTok{, mod_}\DecValTok{3}\NormalTok{), BIC)}
+
+\KeywordTok{data.frame}\NormalTok{(}\StringTok{'Grouping'}\NormalTok{ =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{'City'}\NormalTok{, }\StringTok{'State'}\NormalTok{, }\StringTok{'Region'}\NormalTok{), }\StringTok{'AIC'}\NormalTok{ =}\StringTok{ }\NormalTok{aic_score, }
+           \StringTok{'BIC'}\NormalTok{ =}\StringTok{ }\NormalTok{bic_score) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(}\DataTypeTok{caption =} \StringTok{"AIC and BIC for different grouping variables"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# group by city}
-\NormalTok{mod\_1 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\AttributeTok{data=}\NormalTok{morph\_data, }\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{city), }\AttributeTok{REML=}\NormalTok{F)}
+\CommentTok{# appendix}
+\CommentTok{# group by city}
+\NormalTok{mod_full_}\DecValTok{1}\NormalTok{ <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\DataTypeTok{data=}\NormalTok{morph_data, }\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\NormalTok{city) }\OperatorTok{+}\StringTok{ }\NormalTok{date_diff }\OperatorTok{+}\StringTok{ }\NormalTok{quarter }
+                   \OperatorTok{+}\StringTok{ }\NormalTok{year }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}
+\StringTok{                }\NormalTok{bulk_purchase }\OperatorTok{+}\StringTok{ }\NormalTok{primary_reason }\OperatorTok{+}\StringTok{ }\NormalTok{source, }\DataTypeTok{REML=}\NormalTok{F)}
 
-\CommentTok{\# group by state}
-\NormalTok{mod\_2 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\AttributeTok{data=}\NormalTok{morph\_data, }\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{state), }\AttributeTok{REML=}\NormalTok{F)}
+\CommentTok{# group by state}
+\NormalTok{mod_full_}\DecValTok{2}\NormalTok{ <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\DataTypeTok{data=}\NormalTok{morph_data, }\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\NormalTok{state) }\OperatorTok{+}\StringTok{ }\NormalTok{date_diff }\OperatorTok{+}\StringTok{ }\NormalTok{quarter }
+                   \OperatorTok{+}\StringTok{ }\NormalTok{year }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}
+\StringTok{                }\NormalTok{bulk_purchase }\OperatorTok{+}\StringTok{ }\NormalTok{primary_reason }\OperatorTok{+}\StringTok{ }\NormalTok{source, }\DataTypeTok{REML=}\NormalTok{F)}
 
-\CommentTok{\# group by region}
-\NormalTok{mod\_3 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\AttributeTok{data=}\NormalTok{morph\_data, }\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{usa\_region), }\AttributeTok{REML=}\NormalTok{F)}
+\CommentTok{# group by region}
+\NormalTok{mod_full_}\DecValTok{3}\NormalTok{ <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\DataTypeTok{data=}\NormalTok{morph_data, }\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{(}\DecValTok{1} \OperatorTok{|}\NormalTok{usa_region) }\OperatorTok{+}\StringTok{ }\NormalTok{date_diff }\OperatorTok{+}\StringTok{ }
+\StringTok{                     }\NormalTok{quarter }\OperatorTok{+}\StringTok{ }\NormalTok{year }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}
+\StringTok{                }\NormalTok{bulk_purchase }\OperatorTok{+}\StringTok{ }\NormalTok{primary_reason }\OperatorTok{+}\StringTok{ }\NormalTok{source, }\DataTypeTok{REML=}\NormalTok{F)}
 
-\NormalTok{aic\_score }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(}\FunctionTok{c}\NormalTok{(mod\_1, mod\_2, mod\_3), AIC)}
-\NormalTok{bic\_score }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(}\FunctionTok{c}\NormalTok{(mod\_1, mod\_2, mod\_3), BIC)}
+\NormalTok{aic_score <-}\StringTok{ }\KeywordTok{sapply}\NormalTok{(}\KeywordTok{c}\NormalTok{(mod_full_}\DecValTok{1}\NormalTok{, mod_full_}\DecValTok{2}\NormalTok{, mod_full_}\DecValTok{3}\NormalTok{), AIC)}
+\NormalTok{bic_score <-}\StringTok{ }\KeywordTok{sapply}\NormalTok{(}\KeywordTok{c}\NormalTok{(mod_full_}\DecValTok{1}\NormalTok{, mod_full_}\DecValTok{2}\NormalTok{, mod_full_}\DecValTok{3}\NormalTok{), BIC)}
 
-\FunctionTok{data.frame}\NormalTok{(}\StringTok{\textquotesingle{}Grouping\textquotesingle{}} \OtherTok{=} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}City\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}State\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Region\textquotesingle{}}\NormalTok{), }\StringTok{\textquotesingle{}AIC\textquotesingle{}} \OtherTok{=}\NormalTok{ aic\_score, }\StringTok{\textquotesingle{}BIC\textquotesingle{}} \OtherTok{=}\NormalTok{ bic\_score) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{()}
+\KeywordTok{data.frame}\NormalTok{(}\StringTok{'Grouping'}\NormalTok{ =}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{'City'}\NormalTok{, }\StringTok{'State'}\NormalTok{, }\StringTok{'Region'}\NormalTok{), }\StringTok{'AIC'}\NormalTok{ =}\StringTok{ }\NormalTok{aic_score, }
+           \StringTok{'BIC'}\NormalTok{ =}\StringTok{ }\NormalTok{bic_score) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"hold_position"}\NormalTok{,}\StringTok{"striped"}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# appendix}
-\CommentTok{\# group by city}
-\NormalTok{mod\_full\_1 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\AttributeTok{data=}\NormalTok{morph\_data, }\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{city) }\SpecialCharTok{+}\NormalTok{ date\_diff }\SpecialCharTok{+}\NormalTok{ quarter }\SpecialCharTok{+}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}
-\NormalTok{                bulk\_purchase }\SpecialCharTok{+}\NormalTok{ primary\_reason }\SpecialCharTok{+}\NormalTok{ source, }\AttributeTok{REML=}\NormalTok{F)}
-
-\CommentTok{\# group by state}
-\NormalTok{mod\_full\_2 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\AttributeTok{data=}\NormalTok{morph\_data, }\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}\NormalTok{ date\_diff }\SpecialCharTok{+}\NormalTok{ quarter }\SpecialCharTok{+}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}
-\NormalTok{                bulk\_purchase }\SpecialCharTok{+}\NormalTok{ primary\_reason }\SpecialCharTok{+}\NormalTok{ source, }\AttributeTok{REML=}\NormalTok{F)}
-
-\CommentTok{\# group by region}
-\NormalTok{mod\_full\_3 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\AttributeTok{data=}\NormalTok{morph\_data, }\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ (}\DecValTok{1} \SpecialCharTok{|}\NormalTok{usa\_region) }\SpecialCharTok{+}\NormalTok{ date\_diff }\SpecialCharTok{+}\NormalTok{ quarter }\SpecialCharTok{+}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}
-\NormalTok{                bulk\_purchase }\SpecialCharTok{+}\NormalTok{ primary\_reason }\SpecialCharTok{+}\NormalTok{ source, }\AttributeTok{REML=}\NormalTok{F)}
-
-\NormalTok{aic\_score }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(}\FunctionTok{c}\NormalTok{(mod\_full\_1, mod\_full\_2, mod\_full\_3), AIC)}
-\NormalTok{bic\_score }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(}\FunctionTok{c}\NormalTok{(mod\_full\_1, mod\_full\_2, mod\_full\_3), BIC)}
-
-\FunctionTok{data.frame}\NormalTok{(}\StringTok{\textquotesingle{}Grouping\textquotesingle{}} \OtherTok{=} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}City\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}State\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}Region\textquotesingle{}}\NormalTok{), }\StringTok{\textquotesingle{}AIC\textquotesingle{}} \OtherTok{=}\NormalTok{ aic\_score, }\StringTok{\textquotesingle{}BIC\textquotesingle{}} \OtherTok{=}\NormalTok{ bic\_score) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{()}
+\NormalTok{modelAll <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{ }\NormalTok{quarter }\OperatorTok{+}\StringTok{ }\NormalTok{primary_reason }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}\StringTok{ }\NormalTok{bulk_purchase }
+                 \OperatorTok{+}\StringTok{ }\NormalTok{year }\OperatorTok{+}\StringTok{ }\NormalTok{date_diff }\OperatorTok{+}\StringTok{ }\NormalTok{source }\OperatorTok{+}\StringTok{ }\NormalTok{(}\DecValTok{1}\OperatorTok{|}\NormalTok{state), }\DataTypeTok{data =}\NormalTok{ morph_data, }
+                 \DataTypeTok{REML=}\NormalTok{F)}
+\KeywordTok{step}\NormalTok{(modelAll)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{modela }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F) }\CommentTok{\#}
-\FunctionTok{summary}\NormalTok{(modela)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{modela }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F) }\CommentTok{\#}
-
-
-\NormalTok{modelb }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  mgstr2 }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F) }\CommentTok{\#}
-
-
-
-
-\CommentTok{\# =====}
-\NormalTok{modelc }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F) }\CommentTok{\#}
-
-\FunctionTok{anova}\NormalTok{(modelb,modelc)}
-
-
-\CommentTok{\# =====}
-
-\NormalTok{modeld }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  year }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\NormalTok{modele }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F) }\CommentTok{\#}
-
-\NormalTok{modelf }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ date\_diff }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelc,modeld)}
-
-\FunctionTok{anova}\NormalTok{(modelc,modele)}
-
-\FunctionTok{anova}\NormalTok{(modelc,modelf)}
-
-
-\CommentTok{\# =====}
-\NormalTok{modelg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F) }\CommentTok{\#}
-
-\FunctionTok{anova}\NormalTok{(modele,modelg)}
-
-\CommentTok{\# =====}
-
-\CommentTok{\# Maybe a little cleaner way to do this}
-\NormalTok{modelh}\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ primary\_reason }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg, modelh)}
-
-\NormalTok{modelAll }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{ quarter }\SpecialCharTok{+}\NormalTok{ primary\_reason }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ year }\SpecialCharTok{+}\NormalTok{ date\_diff }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-\FunctionTok{step}\NormalTok{(modelAll)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modelc,modele)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{], }\DecValTok{4}\NormalTok{)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{model }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"(1|state)"}\NormalTok{,}
+\NormalTok{model <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{"(1|state)"}\NormalTok{,}
            \StringTok{"(1|state) + mgstr2"}\NormalTok{,}
-           \StringTok{"(1|state) + mgstr2 + bulk\_purchase"}\NormalTok{,}
-           \StringTok{"(1|state) + mgstr2 + bulk\_purchase + year"}\NormalTok{,}
-           \StringTok{"(1|state) + mgstr2 + bulk\_purchase + quarter"}\NormalTok{,}
-           \StringTok{"(1|state) + mgstr2 + bulk\_purchase + date\_diff"}\NormalTok{,}
-           \StringTok{"(1|state) + mgstr2 + bulk\_purchase + quarter + source"}\NormalTok{,}
-           \StringTok{"(1|state) + mgstr2 + bulk\_purchase + quarter + source + primary\_reason"}\NormalTok{)}
-\NormalTok{LRT }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{""}\NormalTok{,}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modela,modelb)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modelb,modelc)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modelc,modeld)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modelc,modele)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modelc,modelf)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modele,modelg)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
-         \FunctionTok{round}\NormalTok{(}\FunctionTok{anova}\NormalTok{(modelg,modelh)}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{Pr(\textgreater{}Chisq)}\StringTok{\textasciigrave{}}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{))}
-\NormalTok{BIC\_score1 }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(}\FunctionTok{c}\NormalTok{(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)}
-\FunctionTok{data.frame}\NormalTok{(}\StringTok{"Model"} \OtherTok{=}\NormalTok{ model, }\StringTok{\textquotesingle{}LRT p{-}value\textquotesingle{}} \OtherTok{=}\NormalTok{ LRT, }\StringTok{\textquotesingle{}BIC\textquotesingle{}} \OtherTok{=}\NormalTok{ BIC\_score1) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{()}
+           \StringTok{"(1|state) + mgstr2 + bulk_purchase"}\NormalTok{,}
+           \StringTok{"(1|state) + mgstr2 + bulk_purchase + year"}\NormalTok{,}
+           \StringTok{"(1|state) + mgstr2 + bulk_purchase + quarter"}\NormalTok{,}
+           \StringTok{"(1|state) + mgstr2 + bulk_purchase + date_diff"}\NormalTok{,}
+           \StringTok{"(1|state) + mgstr2 + bulk_purchase + quarter + source"}\NormalTok{,}
+           \StringTok{"(1|state) + mgstr2 + bulk_purchase + quarter + source +}
+\StringTok{           primary_reason"}\NormalTok{)}
+\NormalTok{LRT <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{""}\NormalTok{,}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modela,modelb)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modelb,modelc)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modelc,modeld)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modelc,modele)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modelc,modelf)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modele,modelg)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{),}
+         \KeywordTok{round}\NormalTok{(}\KeywordTok{anova}\NormalTok{(modelg,modelh)}\OperatorTok{$}\StringTok{`}\DataTypeTok{Pr(>Chisq)}\StringTok{`}\NormalTok{[}\DecValTok{2}\NormalTok{],}\DecValTok{4}\NormalTok{))}
+\NormalTok{BIC_score1 <-}\StringTok{ }\KeywordTok{sapply}\NormalTok{(}\KeywordTok{c}\NormalTok{(modela, modelb, modelc, modeld, modele, modelf, modelg,}
+\NormalTok{                       modelh), BIC)}
+\KeywordTok{data.frame}\NormalTok{(}\StringTok{"Model"}\NormalTok{ =}\StringTok{ }\NormalTok{model, }\StringTok{'LRT p-value'}\NormalTok{ =}\StringTok{ }\NormalTok{LRT, }\StringTok{'BIC'}\NormalTok{ =}\StringTok{ }\NormalTok{BIC_score1) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{(}\DataTypeTok{caption =} \StringTok{"Forward model selection"}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"hold_position"}\NormalTok{,}\StringTok{"striped"}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{modelg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-
-\NormalTok{modelgg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}
-\NormalTok{                 quarter }\SpecialCharTok{*}\NormalTok{ bulk\_purchase, }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg,modelgg)}
-
-\NormalTok{modelggg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}
-\NormalTok{                 quarter }\SpecialCharTok{*}\NormalTok{ mgstr2, }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg,modelggg)}
-
-\NormalTok{modelgggg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}
-\NormalTok{                 bulk\_purchase }\SpecialCharTok{*}\NormalTok{ mgstr2, }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg,modelgggg)}
-
-\NormalTok{modelggggg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}
-\NormalTok{                 quarter }\SpecialCharTok{*}\NormalTok{ source, }\AttributeTok{data =}\NormalTok{ morph\_data , }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg,modelggggg)}
-
-\NormalTok{modelgggggg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}
-\NormalTok{                 bulk\_purchase }\SpecialCharTok{*}\NormalTok{ source, }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg,modelgggggg)}
-
-
-\NormalTok{modelggggggg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state) }\SpecialCharTok{+}
-\NormalTok{                 source }\SpecialCharTok{*}\NormalTok{ mgstr2, }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{anova}\NormalTok{(modelg,modelggggggg)}
+\NormalTok{modelg <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{  }\NormalTok{quarter }\OperatorTok{+}\StringTok{ }\NormalTok{source }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}\StringTok{ }\NormalTok{bulk_purchase }\OperatorTok{+}\StringTok{ }
+\StringTok{                 }\NormalTok{(}\DecValTok{1}\OperatorTok{|}\NormalTok{state), }\DataTypeTok{data =}\NormalTok{ morph_data, }\DataTypeTok{REML=}\NormalTok{F)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{modelg }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data, }\AttributeTok{REML=}\NormalTok{F)}
-\end{Highlighting}
-\end{Shaded}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\NormalTok{plot\_qq }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{res=}\FunctionTok{residuals}\NormalTok{(model, }\AttributeTok{scaled=}\ConstantTok{TRUE}\NormalTok{)}
+\NormalTok{plot_qq <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}
+    \DataTypeTok{res=}\KeywordTok{residuals}\NormalTok{(model, }\DataTypeTok{scaled=}\OtherTok{TRUE}\NormalTok{)}
 \NormalTok{  )}
-
-\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{sample=}\NormalTok{res)) }\SpecialCharTok{+}
-    \FunctionTok{stat\_qq}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{stat\_qq\_line}\NormalTok{(}
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\DecValTok{1}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}
-      \AttributeTok{title=}\StringTok{\textquotesingle{}Normal QQ for Residuals\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{x=}\StringTok{\textquotesingle{}Theoretical Quantiles\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{y=}\StringTok{\textquotesingle{}Standardized Residuals\textquotesingle{}}
-\NormalTok{    ) }\SpecialCharTok{+} \FunctionTok{theme\_bw}\NormalTok{()}
-
-  \FunctionTok{return}\NormalTok{(p)}
+  
+\NormalTok{  p <-}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(df, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{sample=}\NormalTok{res)) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{stat_qq}\NormalTok{(}
+      \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{    ) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{stat_qq_line}\NormalTok{(}
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.5}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}
+      \DataTypeTok{x=}\StringTok{'Theoretical Quantiles'}\NormalTok{,}
+      \DataTypeTok{y=}\StringTok{'Standardized Residuals'}
+\NormalTok{    ) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Normal QQ for Residuals"}\NormalTok{) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+  
+  \KeywordTok{return}\NormalTok{(p)}
 \NormalTok{\}}
-\NormalTok{plot\_ranef\_qq }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{res=}\FunctionTok{ranef}\NormalTok{(model)[[}\DecValTok{1}\NormalTok{]][[}\DecValTok{1}\NormalTok{]]}
+
+
+\NormalTok{plot_ranef_qq <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}
+    \DataTypeTok{res=}\KeywordTok{ranef}\NormalTok{(model)[[}\DecValTok{1}\NormalTok{]][[}\DecValTok{1}\NormalTok{]]}
 \NormalTok{  )}
-
-\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{sample=}\NormalTok{res)) }\SpecialCharTok{+}
-    \FunctionTok{stat\_qq}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{stat\_qq\_line}\NormalTok{(}
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\DecValTok{1}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}
-      \AttributeTok{title=}\StringTok{\textquotesingle{}Normal QQ for Random Effects\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{x=}\StringTok{\textquotesingle{}Theoretical Quantiles\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{y=}\StringTok{\textquotesingle{}State Intercept\textquotesingle{}}
-\NormalTok{    ) }\SpecialCharTok{+} \FunctionTok{theme\_bw}\NormalTok{()}
-
-  \FunctionTok{return}\NormalTok{(p)}
+  
+\NormalTok{  p <-}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(df, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{sample=}\NormalTok{res)) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{stat_qq}\NormalTok{(}
+      \DataTypeTok{size=}\FloatTok{0.5}
+\NormalTok{    ) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{stat_qq_line}\NormalTok{(}
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.5}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}
+      \DataTypeTok{x=}\StringTok{'Theoretical Quantiles'}\NormalTok{,}
+      \DataTypeTok{y=}\StringTok{'State Intercept'}
+\NormalTok{    ) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Normal QQ for Random Effects"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+  
+  \KeywordTok{return}\NormalTok{(p)}
 \NormalTok{\}}
-\NormalTok{plot\_res\_fit }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{res=}\FunctionTok{residuals}\NormalTok{(model),}
-    \AttributeTok{fit=}\FunctionTok{fitted}\NormalTok{(model)}
+
+\NormalTok{plot_res_fit <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}
+    \DataTypeTok{res=}\KeywordTok{residuals}\NormalTok{(model),}
+    \DataTypeTok{fit=}\KeywordTok{fitted}\NormalTok{(model)}
 \NormalTok{  )}
-
-\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{fit, }\AttributeTok{y=}\NormalTok{res)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{geom\_hline}\NormalTok{(}
-      \AttributeTok{yintercept=}\DecValTok{0}\NormalTok{,}
-      \AttributeTok{linetype=}\StringTok{"dashed"}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{geom\_smooth}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}
-      \AttributeTok{title=}\StringTok{\textquotesingle{}Residuals vs. Fitted\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{x=}\StringTok{\textquotesingle{}Fitted\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{y=}\StringTok{\textquotesingle{}Residuals\textquotesingle{}}
-\NormalTok{    ) }\SpecialCharTok{+} \FunctionTok{theme\_bw}\NormalTok{()}
-
-  \FunctionTok{return}\NormalTok{(p)}
+  
+\NormalTok{  p <-}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(df, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{fit, }\DataTypeTok{y=}\NormalTok{res)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_point}\NormalTok{(}
+      \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_hline}\NormalTok{(}
+      \DataTypeTok{yintercept=}\DecValTok{0}\NormalTok{,}
+      \DataTypeTok{linetype=}\StringTok{"dashed"}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_smooth}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}
+      \DataTypeTok{x=}\StringTok{'Fitted'}\NormalTok{,}
+      \DataTypeTok{y=}\StringTok{'Residuals'}
+\NormalTok{    ) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Residuals vs. Fitted"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+  
+  \KeywordTok{return}\NormalTok{(p)}
 \NormalTok{\}}
-\NormalTok{plot\_scale\_loc }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{res=}\FunctionTok{sqrt}\NormalTok{(}\FunctionTok{residuals}\NormalTok{(model, }\AttributeTok{scaled=}\ConstantTok{TRUE}\NormalTok{)),}
-    \AttributeTok{fit=}\FunctionTok{fitted}\NormalTok{(model)}
+
+\NormalTok{plot_scale_loc <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}
+    \DataTypeTok{res=}\KeywordTok{sqrt}\NormalTok{(}\KeywordTok{residuals}\NormalTok{(model, }\DataTypeTok{scaled=}\OtherTok{TRUE}\NormalTok{)),}
+    \DataTypeTok{fit=}\KeywordTok{fitted}\NormalTok{(model)}
 \NormalTok{  )}
-
-\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{fit, }\AttributeTok{y=}\NormalTok{res)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{geom\_smooth}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}
-      \AttributeTok{title=}\StringTok{\textquotesingle{}Scale{-}Location\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{x=}\StringTok{\textquotesingle{}Fitted\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{y=}\FunctionTok{expression}\NormalTok{(}\FunctionTok{sqrt}\NormalTok{(}\StringTok{\textquotesingle{}Standardized Residuals\textquotesingle{}}\NormalTok{))}
-\NormalTok{    ) }\SpecialCharTok{+} \FunctionTok{theme\_bw}\NormalTok{()}
-
-  \FunctionTok{return}\NormalTok{(p)}
+  
+\NormalTok{  p <-}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(df, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{fit, }\DataTypeTok{y=}\NormalTok{res)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_point}\NormalTok{(}
+      \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_smooth}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}
+      \DataTypeTok{x=}\StringTok{'Fitted'}\NormalTok{,}
+      \DataTypeTok{y=}\KeywordTok{expression}\NormalTok{(}\KeywordTok{sqrt}\NormalTok{(}\StringTok{'Standardized Residuals'}\NormalTok{))}
+\NormalTok{    ) }\OperatorTok{+}\StringTok{ }
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Scale-Location"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+  
+  \KeywordTok{return}\NormalTok{(p)}
 \NormalTok{\}}
-\NormalTok{plot\_res\_dens }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  df }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}
-    \AttributeTok{res=}\FunctionTok{residuals}\NormalTok{(model)}
+
+\NormalTok{plot_res_dens <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}
+    \DataTypeTok{res=}\KeywordTok{residuals}\NormalTok{(model)}
 \NormalTok{  )}
-
-\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\NormalTok{res)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_density}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}
-      \AttributeTok{title=}\StringTok{\textquotesingle{}Residuals Density\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{x=}\StringTok{\textquotesingle{}Residuals\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{y=}\StringTok{\textquotesingle{}Density\textquotesingle{}}
-\NormalTok{    ) }\SpecialCharTok{+} \FunctionTok{theme\_bw}\NormalTok{()}
-
-  \FunctionTok{return}\NormalTok{(p)}
+  
+\NormalTok{  p <-}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(df, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\NormalTok{res)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_density}\NormalTok{() }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}
+      \DataTypeTok{x=}\StringTok{'Residuals'}\NormalTok{,}
+      \DataTypeTok{y=}\StringTok{'Density'}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Residuals Density"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+  
+  \KeywordTok{return}\NormalTok{(p)}
 \NormalTok{\}}
 
+\NormalTok{plot_cooks_distance <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model1)\{}
+\NormalTok{  model_inf<-}\StringTok{ }\KeywordTok{influence}\NormalTok{(model1, }\DataTypeTok{group =} \StringTok{"state"}\NormalTok{)}
+\NormalTok{  data <-}\StringTok{ }\KeywordTok{model.frame}\NormalTok{(model1)}
+\NormalTok{  cooks_distance <-}\StringTok{ }\KeywordTok{cooks.distance}\NormalTok{(model_inf)}
+\NormalTok{  cutline <-}\StringTok{ }\DecValTok{4} \OperatorTok{/}\StringTok{ }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(data}\OperatorTok{$}\NormalTok{state))}
+\NormalTok{  infindiv <-}\StringTok{ }\NormalTok{cooks_distance }\OperatorTok{>}\StringTok{ }\NormalTok{cutline}
 
-\NormalTok{plot\_cooks\_distance }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model1)\{}
-\NormalTok{  model\_inf}\OtherTok{\textless{}{-}} \FunctionTok{influence}\NormalTok{(model1, }\AttributeTok{group =} \StringTok{"state"}\NormalTok{)}
-\NormalTok{  data }\OtherTok{\textless{}{-}} \FunctionTok{model.frame}\NormalTok{(model1)}
-\NormalTok{  cooks\_distance }\OtherTok{\textless{}{-}} \FunctionTok{cooks.distance}\NormalTok{(model\_inf)}
-\NormalTok{  cutline }\OtherTok{\textless{}{-}} \DecValTok{4} \SpecialCharTok{/} \FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{state))}
-\NormalTok{  infindiv }\OtherTok{\textless{}{-}}\NormalTok{ cooks\_distance }\SpecialCharTok{\textgreater{}}\NormalTok{ cutline}
-
-\NormalTok{  p }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(}\AttributeTok{data=}\ConstantTok{NULL}\NormalTok{, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(data}\SpecialCharTok{$}\NormalTok{state)), }\AttributeTok{y=}\NormalTok{cooks\_distance)) }\SpecialCharTok{+}
-    \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-    \FunctionTok{geom\_hline}\NormalTok{(}
-      \AttributeTok{yintercept=}\NormalTok{cutline,}
-      \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{size=}\FloatTok{0.75}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{labs}\NormalTok{(}
-      \AttributeTok{x=}\StringTok{\textquotesingle{}Index\textquotesingle{}}\NormalTok{,}
-      \AttributeTok{y=}\StringTok{\textquotesingle{}Cooks Distance\textquotesingle{}}
-\NormalTok{    ) }\SpecialCharTok{+}
-    \FunctionTok{theme\_bw}\NormalTok{()}
-  \FunctionTok{return}\NormalTok{(p)}
+\NormalTok{  p <-}\StringTok{ }\KeywordTok{ggplot}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NULL}\NormalTok{, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\DecValTok{1}\OperatorTok{:}\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(data}\OperatorTok{$}\NormalTok{state)), }\DataTypeTok{y=}\NormalTok{cooks_distance)) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_point}\NormalTok{(}
+      \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{geom_hline}\NormalTok{(}
+      \DataTypeTok{yintercept=}\NormalTok{cutline,}
+      \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+      \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+      \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{    }\KeywordTok{labs}\NormalTok{(}
+      \DataTypeTok{x=}\StringTok{'Index'}\NormalTok{,}
+      \DataTypeTok{y=}\StringTok{'Cooks Distance'}
+\NormalTok{    ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"Cook's Distance for States"}\NormalTok{) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
+  \KeywordTok{return}\NormalTok{(p)}
 \NormalTok{\}}
 
-\NormalTok{model\_diag }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  p1 }\OtherTok{\textless{}{-}} \FunctionTok{plot\_res\_fit}\NormalTok{(model)}
-\NormalTok{  p2 }\OtherTok{\textless{}{-}} \FunctionTok{plot\_qq}\NormalTok{(model)}
-\NormalTok{  p3 }\OtherTok{\textless{}{-}} \FunctionTok{plot\_ranef\_qq}\NormalTok{(model)}
-\NormalTok{  p4 }\OtherTok{\textless{}{-}} \FunctionTok{plot\_cooks\_distance}\NormalTok{(model)}
-
-\NormalTok{  cowplot}\SpecialCharTok{::}\FunctionTok{plot\_grid}\NormalTok{(p1, p2, p3, p4, }\AttributeTok{nrow=}\DecValTok{2}\NormalTok{)}
+\NormalTok{model_diag <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  p1 <-}\StringTok{ }\KeywordTok{plot_res_fit}\NormalTok{(model)}
+\NormalTok{  p2 <-}\StringTok{ }\KeywordTok{plot_qq}\NormalTok{(model)}
+\NormalTok{  p3 <-}\StringTok{ }\KeywordTok{plot_ranef_qq}\NormalTok{(model)}
+\NormalTok{  p4 <-}\StringTok{ }\KeywordTok{plot_cooks_distance}\NormalTok{(model)}
+  
+\NormalTok{  cowplot}\OperatorTok{::}\KeywordTok{plot_grid}\NormalTok{(p1, p2, p3, p4, }\DataTypeTok{nrow=}\DecValTok{2}\NormalTok{)}
 \NormalTok{\}}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# view\_coef(modelg)}
-\CommentTok{\# view\_params(modelg)}
-\FunctionTok{model\_diag}\NormalTok{(modelg)}
+\KeywordTok{model_diag}\NormalTok{(modelg)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# remove lowest residual data point}
-\NormalTok{morph\_data2 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data[}\SpecialCharTok{{-}}\FunctionTok{which.min}\NormalTok{(}\FunctionTok{resid}\NormalTok{(modelg)),]}
+\CommentTok{# remove lowest residual data point}
+\NormalTok{morph_data2 <-}\StringTok{ }\NormalTok{morph_data[}\OperatorTok{-}\KeywordTok{which.min}\NormalTok{(}\KeywordTok{resid}\NormalTok{(modelg)),]}
 
 
-\NormalTok{model\_g2 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data2, }\AttributeTok{REML=}\NormalTok{F)}
+\NormalTok{model_g2 <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{  }\NormalTok{quarter }\OperatorTok{+}\StringTok{ }\NormalTok{source }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}\StringTok{ }\NormalTok{bulk_purchase }\OperatorTok{+}\StringTok{ }
+\StringTok{                   }\NormalTok{(}\DecValTok{1}\OperatorTok{|}\NormalTok{state), }\DataTypeTok{data =}\NormalTok{ morph_data2, }\DataTypeTok{REML=}\NormalTok{F)}
 
 
-\CommentTok{\# view\_coef(model\_g2)}
-\CommentTok{\# view\_params(model\_g2)}
-\FunctionTok{model\_diag}\NormalTok{(model\_g2)}
+\CommentTok{# view_coef(model_g2)}
+\CommentTok{# view_params(model_g2)}
+\CommentTok{# model_diag(model_g2)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{model\_g2\_inf}\OtherTok{\textless{}{-}} \FunctionTok{influence}\NormalTok{(model\_g2, }\AttributeTok{group =} \StringTok{"state"}\NormalTok{)}
+\NormalTok{model_g2_inf<-}\StringTok{ }\KeywordTok{influence}\NormalTok{(model_g2, }\DataTypeTok{group =} \StringTok{"state"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{cooks\_distance }\OtherTok{\textless{}{-}} \FunctionTok{cooks.distance}\NormalTok{(model\_g2\_inf)}
-\NormalTok{cutline }\OtherTok{\textless{}{-}} \DecValTok{4} \SpecialCharTok{/} \FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(morph\_data2}\SpecialCharTok{$}\NormalTok{state))}
-\NormalTok{infindiv }\OtherTok{\textless{}{-}}\NormalTok{ cooks\_distance }\SpecialCharTok{\textgreater{}}\NormalTok{ cutline}
+\NormalTok{cooks_distance <-}\StringTok{ }\KeywordTok{cooks.distance}\NormalTok{(model_g2_inf)}
+\NormalTok{cutline <-}\StringTok{ }\DecValTok{4} \OperatorTok{/}\StringTok{ }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(morph_data2}\OperatorTok{$}\NormalTok{state))}
+\NormalTok{infindiv <-}\StringTok{ }\NormalTok{cooks_distance }\OperatorTok{>}\StringTok{ }\NormalTok{cutline}
 
-\FunctionTok{ggplot}\NormalTok{(}\AttributeTok{data=}\ConstantTok{NULL}\NormalTok{, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x=}\DecValTok{1}\SpecialCharTok{:}\FunctionTok{length}\NormalTok{(}\FunctionTok{unique}\NormalTok{(morph\_data2}\SpecialCharTok{$}\NormalTok{state)), }\AttributeTok{y=}\NormalTok{cooks\_distance)) }\SpecialCharTok{+}
-  \FunctionTok{geom\_point}\NormalTok{() }\SpecialCharTok{+}
-  \FunctionTok{geom\_hline}\NormalTok{(}
-    \AttributeTok{yintercept=}\NormalTok{cutline,}
-    \AttributeTok{linetype=}\StringTok{\textquotesingle{}dashed\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{color=}\StringTok{\textquotesingle{}red\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{size=}\FloatTok{0.75}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{labs}\NormalTok{(}
-    \AttributeTok{x=}\StringTok{\textquotesingle{}Index\textquotesingle{}}\NormalTok{,}
-    \AttributeTok{y=}\StringTok{\textquotesingle{}Cooks Distance\textquotesingle{}}
-\NormalTok{  ) }\SpecialCharTok{+}
-  \FunctionTok{theme\_bw}\NormalTok{()}
+\KeywordTok{ggplot}\NormalTok{(}\DataTypeTok{data=}\OtherTok{NULL}\NormalTok{, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x=}\DecValTok{1}\OperatorTok{:}\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(morph_data2}\OperatorTok{$}\NormalTok{state)), }\DataTypeTok{y=}\NormalTok{cooks_distance)) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_point}\NormalTok{() }\OperatorTok{+}
+\StringTok{  }\KeywordTok{geom_hline}\NormalTok{(}
+    \DataTypeTok{yintercept=}\NormalTok{cutline,}
+    \DataTypeTok{linetype=}\StringTok{'dashed'}\NormalTok{,}
+    \DataTypeTok{color=}\StringTok{'red'}\NormalTok{,}
+    \DataTypeTok{size=}\FloatTok{0.75}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{labs}\NormalTok{(}
+    \DataTypeTok{x=}\StringTok{'Index'}\NormalTok{,}
+    \DataTypeTok{y=}\StringTok{'Cooks Distance'}
+\NormalTok{  ) }\OperatorTok{+}
+\StringTok{  }\KeywordTok{theme_bw}\NormalTok{()}
 
 
-\FunctionTok{data.frame}\NormalTok{(}
-  \FunctionTok{rownames}\NormalTok{(model\_g2\_inf}\SpecialCharTok{$}\StringTok{\textasciigrave{}}\AttributeTok{fixed.effects[{-}state]}\StringTok{\textasciigrave{}}\NormalTok{),}
-  \FunctionTok{round}\NormalTok{(cooks\_distance, }\DecValTok{4}\NormalTok{),}
+\KeywordTok{data.frame}\NormalTok{(}
+  \KeywordTok{rownames}\NormalTok{(model_g2_inf}\OperatorTok{$}\StringTok{`}\DataTypeTok{fixed.effects[-state]}\StringTok{`}\NormalTok{),}
+  \KeywordTok{round}\NormalTok{(cooks_distance, }\DecValTok{4}\NormalTok{),}
 \NormalTok{  infindiv}
-\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(infindiv }\SpecialCharTok{==} \ConstantTok{TRUE}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-\NormalTok{  dplyr}\SpecialCharTok{::}\FunctionTok{select}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{2}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{rename}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{State}\StringTok{\textasciigrave{}}\OtherTok{=}\DecValTok{1}\NormalTok{, }\StringTok{\textasciigrave{}}\AttributeTok{Cook\textquotesingle{}s Distance}\StringTok{\textasciigrave{}}\OtherTok{=}\DecValTok{2}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable\_classic}\NormalTok{(}\AttributeTok{full\_width=}\ConstantTok{FALSE}\NormalTok{)}
+\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{filter}\NormalTok{(infindiv }\OperatorTok{==}\StringTok{ }\OtherTok{TRUE}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(}\DecValTok{1}\OperatorTok{:}\DecValTok{2}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{rename}\NormalTok{(}\StringTok{`}\DataTypeTok{State}\StringTok{`}\NormalTok{=}\DecValTok{1}\NormalTok{, }\StringTok{`}\DataTypeTok{Cook's Distance}\StringTok{`}\NormalTok{=}\DecValTok{2}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_classic}\NormalTok{(}\DataTypeTok{full_width=}\OtherTok{FALSE}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# remove three most influential states}
-\NormalTok{morph\_data3 }\OtherTok{\textless{}{-}}\NormalTok{ morph\_data2 }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\NormalTok{state }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}Florida\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}California\textquotesingle{}}\NormalTok{,}\StringTok{\textquotesingle{}Pennsylvania\textquotesingle{}}\NormalTok{))}
+\CommentTok{# remove three most influential states}
+\NormalTok{morph_data3 <-}\StringTok{ }\NormalTok{morph_data2 }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{filter}\NormalTok{(}\OperatorTok{!}\NormalTok{state }\OperatorTok{%in%}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{'Florida'}\NormalTok{, }\StringTok{'California'}\NormalTok{,}\StringTok{'Pennsylvania'}\NormalTok{))}
 
+\NormalTok{model_g3 <-}\StringTok{ }\KeywordTok{lmer}\NormalTok{(}\KeywordTok{log}\NormalTok{(ppm) }\OperatorTok{~}\StringTok{  }\NormalTok{quarter }\OperatorTok{+}\StringTok{ }\NormalTok{source }\OperatorTok{+}\StringTok{ }\NormalTok{mgstr2 }\OperatorTok{+}\StringTok{ }\NormalTok{bulk_purchase }\OperatorTok{+}\StringTok{ }
+\StringTok{                   }\NormalTok{(}\DecValTok{1}\OperatorTok{|}\NormalTok{state), }\DataTypeTok{data =}\NormalTok{ morph_data3, }\DataTypeTok{REML=}\NormalTok{F)}
 
-\NormalTok{model\_g3 }\OtherTok{\textless{}{-}} \FunctionTok{lmer}\NormalTok{(}\FunctionTok{log}\NormalTok{(ppm) }\SpecialCharTok{\textasciitilde{}}\NormalTok{  quarter }\SpecialCharTok{+}\NormalTok{ source }\SpecialCharTok{+}\NormalTok{ mgstr2 }\SpecialCharTok{+}\NormalTok{ bulk\_purchase }\SpecialCharTok{+}\NormalTok{ (}\DecValTok{1}\SpecialCharTok{|}\NormalTok{state), }\AttributeTok{data =}\NormalTok{ morph\_data3, }\AttributeTok{REML=}\NormalTok{F)}
-
-\FunctionTok{model\_diag}\NormalTok{(model\_g3)}
+\KeywordTok{model_diag}\NormalTok{(model_g3)}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# view coefficient estimates}
-\NormalTok{view\_coef }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-  \FunctionTok{summary}\NormalTok{(model)}\SpecialCharTok{$}\NormalTok{coefficients }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{as.data.frame}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{mutate}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{exp(Estimate)}\StringTok{\textasciigrave{}}\OtherTok{=}\FunctionTok{exp}\NormalTok{(Estimate)) }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{relocate}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{exp(Estimate)}\StringTok{\textasciigrave{}}\NormalTok{, }\AttributeTok{.after=}\NormalTok{Estimate) }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{kable}\NormalTok{(}\AttributeTok{digits =} \DecValTok{4}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{kable\_classic}\NormalTok{(}\AttributeTok{full\_width=}\ConstantTok{FALSE}\NormalTok{)}
+\CommentTok{# view coefficient estimates}
+\NormalTok{view_coef <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+  \KeywordTok{summary}\NormalTok{(model)}\OperatorTok{$}\NormalTok{coefficients }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{as.data.frame}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{mutate}\NormalTok{(}\StringTok{`}\DataTypeTok{exp(Estimate)}\StringTok{`}\NormalTok{=}\KeywordTok{exp}\NormalTok{(Estimate)) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{relocate}\NormalTok{(}\StringTok{`}\DataTypeTok{exp(Estimate)}\StringTok{`}\NormalTok{, }\DataTypeTok{.after=}\NormalTok{Estimate) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{kable}\NormalTok{(}\DataTypeTok{caption =} \StringTok{"Estimates of fixed effects"}\NormalTok{,}
+      \DataTypeTok{digits =} \DecValTok{4}\NormalTok{) }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{kable_classic}\NormalTok{(}\DataTypeTok{full_width=}\OtherTok{FALSE}\NormalTok{)}
 \NormalTok{\}}
 
-
-
-\CommentTok{\# view parameter estimates}
-\NormalTok{view\_params }\OtherTok{\textless{}{-}} \ControlFlowTok{function}\NormalTok{(model) \{}
-\NormalTok{  params }\OtherTok{\textless{}{-}} \FunctionTok{summary}\NormalTok{(model)}\SpecialCharTok{$}\NormalTok{varcor }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{as.data.frame}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-\NormalTok{    dplyr}\SpecialCharTok{::}\FunctionTok{select}\NormalTok{(vcov)}
-
-  \FunctionTok{rownames}\NormalTok{(params) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}$}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{tau\^{}2$\textquotesingle{}}\NormalTok{, }\StringTok{\textquotesingle{}$}\SpecialCharTok{\textbackslash{}\textbackslash{}}\StringTok{sigma\^{}2$\textquotesingle{}}\NormalTok{)}
-  \FunctionTok{colnames}\NormalTok{(params) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{\textquotesingle{}Estimate\textquotesingle{}}\NormalTok{)}
-  \FunctionTok{kable}\NormalTok{(params, }\AttributeTok{digits =} \DecValTok{4}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{kable\_classic}\NormalTok{(}\AttributeTok{full\_width=}\ConstantTok{FALSE}\NormalTok{)}
+\CommentTok{# view parameter estimates}
+\NormalTok{view_params <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(model) \{}
+\NormalTok{  params <-}\StringTok{ }\KeywordTok{summary}\NormalTok{(model)}\OperatorTok{$}\NormalTok{varcor }\OperatorTok{%>%}
+\StringTok{    }\KeywordTok{as.data.frame}\NormalTok{() }\OperatorTok{%>%}
+\StringTok{    }\NormalTok{dplyr}\OperatorTok{::}\KeywordTok{select}\NormalTok{(vcov)}
+\NormalTok{  params <-}\StringTok{ }\KeywordTok{t}\NormalTok{(params)}
+  \KeywordTok{rownames}\NormalTok{(params) <-}\StringTok{ }\KeywordTok{c}\NormalTok{(}\StringTok{'Estimate'}\NormalTok{)}
+  
+  \KeywordTok{kable}\NormalTok{(params,}
+        \DataTypeTok{caption =} \StringTok{"Estimates of random effects"}\NormalTok{,}
+        \DataTypeTok{col.names =} \KeywordTok{c}\NormalTok{(}\StringTok{'$}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{tau^2$'}\NormalTok{, }\StringTok{'$}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{sigma^2$'}\NormalTok{),}
+        \DataTypeTok{digits =} \DecValTok{4}\NormalTok{,}
+        \DataTypeTok{format =} \StringTok{'latex'}\NormalTok{,}
+        \DataTypeTok{escape =} \OtherTok{FALSE}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{kable_classic}\NormalTok{(}\DataTypeTok{full_width=}\OtherTok{FALSE}\NormalTok{)}
 \NormalTok{\}}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{view\_coef}\NormalTok{(model\_g2)}
+\KeywordTok{view_coef}\NormalTok{(model_g2) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"hold_position"}\NormalTok{,}\StringTok{"striped"}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{view\_params}\NormalTok{(model\_g2)}
+\KeywordTok{view_params}\NormalTok{(model_g2) }\OperatorTok{%>%}
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{(}\DataTypeTok{latex_options =} \KeywordTok{c}\NormalTok{(}\StringTok{"hold_position"}\NormalTok{,}\StringTok{"striped"}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\CommentTok{\# view intercept estimates and intervals}
-\FunctionTok{dotplot}\NormalTok{(}\FunctionTok{ranef}\NormalTok{(model\_g2, }\AttributeTok{condVar =} \ConstantTok{TRUE}\NormalTok{))}
+\CommentTok{# view intercept estimates and intervals}
+\KeywordTok{dotplot}\NormalTok{(}\KeywordTok{ranef}\NormalTok{(model_g2, }\DataTypeTok{condVar =} \OtherTok{TRUE}\NormalTok{))}\OperatorTok{$}\NormalTok{state}
 \end{Highlighting}
 \end{Shaded}
-
-\begin{Shaded}
-\begin{Highlighting}[]
-\FunctionTok{ranef}\NormalTok{(model\_g2, }\AttributeTok{condVar =} \ConstantTok{TRUE}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{as.data.frame}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{arrange}\NormalTok{(}\FunctionTok{desc}\NormalTok{(condval)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{mutate}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{exp(condval)}\StringTok{\textasciigrave{}} \OtherTok{=} \FunctionTok{exp}\NormalTok{(condval)) }\SpecialCharTok{\%\textgreater{}\%}
-  \FunctionTok{kable}\NormalTok{()}
-\end{Highlighting}
-\end{Shaded}
-
 
 \end{document}

@@ -51,9 +51,7 @@ load('streetrx.RData')
 
 # Introduction
 
-Prescription opioid abuse has recently become an epidemic in the United States. The price of illicit prescription opioids indicates the supply-demand relationship of the drug. This case study aims to explore the relationship between the unit price of drugs and other factors such as the quantity purchased, the location of the transaction, and strength of the drug. More specifically, our group’s interest is to explore the factors related to the cost per milligram and the heterogeneity in the region. The dataset we will be using is provided by StreetRx, a reporting tool for people at large to anonymously report the price they paid or heard for diverted prescription drugs.
-
-Our drug of interest is Morphine which is used to “relieve moderate to severe pain and may be habit-forming,” especially with prolonged use (MedlinePlus). 
+Prescription opioid abuse has recently become an epidemic in the United States. The price of illicit prescription opioids indicates the supply-demand relationship of the drug. This case study aims to explore the relationship between the unit price of drugs and other factors such as the quantity purchased, the location of the transaction, and strength of the drug. More specifically, our group’s interest is to explore the factors related to the cost per milligram and the heterogeneity in the region. The dataset we will be using is provided by StreetRx, a reporting tool for people at large to anonymously report the price they paid or heard for diverted prescription drugs. Our drug of interest is Morphine which is used to “relieve moderate to severe pain and may be habit-forming,” especially with prolonged use (MedlinePlus). 
 
 
 
@@ -186,7 +184,7 @@ length(unique(morph_data$usa_region))
 **State**
 
 
-As for the state, we examined the sample sizes in each group and decided to out filter Puerto Rico and Vermont because they have less than 5 observations. 
+As for the state, we examined the sample sizes in each group and decided to filter out Puerto Rico and Vermont because they have less than 5 observations. 
 
 ```{r, echo=FALSE, eval = FALSE}
 state_size <- morph_data %>%
@@ -448,7 +446,7 @@ grid.arrange(plot1, plot2, ncol =2)
 ```
 
 
-There is no need to conduct any data cleaning on `bulk_purchase`. And from the boxplot (see appendix), there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
+There is no need to conduct any data cleaning on `bulk_purchase`. From the boxplot we see that there is a slight trend that the drug price may be lower if purchased in bulk. Therefore, `bulk_purchase` might be a potential predictor.
 
 For the feature `source`, we have recoded the missing value as "Blank" and the name of websites as "Internet". We also dropped the only observation whose `source` is "Drug Forum". The boxplot shows that the `log(ppm)` value varies among different sources (see appendix).
 
@@ -567,15 +565,15 @@ For `primary_reason`, we have converted the empty cells and "0 Reporter did not 
 
 ### Interaction
 
-We also inspected how predictors interact with each other, i.e. whether the effect of one predictor on the unit price of morphine is influenced by any other predictor. We found that there might by potential interaction among `dosage strength`, `quarter`, `quarter`, and `primary reason` (see appendix). In the modeling part, we will check whether there are interactions in a more formal way.
+We also inspected how predictors interact with each other, i.e. whether the effect of one predictor on the unit price of morphine is influenced by any other predictor. We found that there might by potential interaction among `dosage strength`, and `quarter`, or `quarter`, and `primary reason` (see appendix). In the modeling part, we will check whether there are interactions in a more formal way.
 
 # Model
 
 ### Initial Model & Model Selection
 
-The goal of our analysis is to investigate factors related to the per milligram price of morphine and explore heterogeneity in pricing by location. As discussed in the EDA part, we do not have enough data to estimate the effects at the city level. Meanwhile, the drug prices do not seem to change significantly across regions. Thus, the state variable is a preferable choice of accounting for location. Since many states have relatively small sample sizes, a hierarchical model allows us to borrow information across states.
+The goal of our analysis is to investigate factors related to the per milligram price of morphine and explore heterogeneity in pricing by location. As discussed in the EDA part, we do not have enough data to estimate the effects at the city level. Meanwhile, the drug prices do not seem to change significantly across regions. Thus, the state variable is the prefered choice of accounting for location. Since many states have relatively small sample sizes, a hierarchical model allows us to borrow information across states.
 
-Comparing three full models with different grouping variables, the AIC and BIC score also suggest choosing `state` as the group-level variable.
+Comparing three full models with different grouping variables, the AIC and BIC score also suggest choosing `state` as the group-level variable. 
 
 ```{r, echo=FALSE}
 # group by city
@@ -618,7 +616,7 @@ data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' =
  
 ```
 
-Our baseline model incorporates only the state-level random intercepts. For other individual-level predictors, we add one variable to the model each time and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The LRT is designed for nested models while the BIC score considers both the likelihood and the model complexity and gives a more general sense of model performance. The table below displays the results of model selection. We also used the full model as a starting point to perform stepwise backward elimination with the results agreeing the previous model selection method. (See appendix).
+Our baseline model incorporates only the state-level random intercepts. For other individual-level predictors, we add one variable to the model each time and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The LRT is designed for nested models while the BIC score considers both the likelihood and the model complexity and gives a more general sense of model performance while also being consistent. Tables 1 and 2 display the results of model selection. We also used the full model as a starting point to perform stepwise backward elimination with the results agreeing with the previous model selection method. (See appendix).
 
 Our final model incorporates the grouping variable `state` and the individual level predictors `mgstr` (recoded as 4 levels), as well as `bulk_purchase`, `quarter`, and `source`. 
 
@@ -717,7 +715,7 @@ modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state)
 
 Our final model is 
 $$log(y_{ij}) = \beta_0 + b_{0j} + \beta_1 M_{ij} + \beta_2 B_{ij} + \beta_3 Q_{ij} + \beta_4 S_{ij} + \epsilon_{ij}$$
-$$b_{0j} \sim \mathcal{N}(0, \tau^2) \perp \epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)$$
+$$b_{0j} \stackrel{iid}\sim \mathcal{N}(0, \tau^2) \perp \epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)$$
 The response variable and predictors are defined as:
 
  - $y_ij$: Per milligram price of morphine for individual i in state j
@@ -1039,9 +1037,9 @@ ranef(model_g2, condVar = TRUE) %>%
   kable()
 ```
 
-# Limitation
+# Limitations
 
-Our analysis and model have several limitations. Firstly, StreetRX provides only self-reported data, which is likely to be messy, biased, and lacking credibility. Besides, states with small sample sizes are still problematic, though we borrow information across states via a hierarchical model. The within-state variance $\sigma^2$ is much larger than the across-state variance $\tau^2$, indicating that there is still much within-state variation left unexplained. This suggests that the per milligram price of morphine may depend on factors not on the state level. Having access to more predictors may help explain these variations and improve the model performance.
+Our analysis and model have several limitations. Firstly, StreetRX provides only self-reported data, which is likely to be messy, biased, and lacking credibility. Although we borrow information across states via a hierarchical model, states with small sample sizes are still problematic. The within-state variance $\sigma^2$ is much larger than the across-state variance $\tau^2$, indicating that there is still much within-state variation left unexplained. This suggests that the per milligram price of morphine may depend on factors not on the state level. Having access to more predictors may help explain these variations and improve the model performance.
 
 
 \newpage
@@ -1138,7 +1136,7 @@ morph_data <- morph_data %>%
 morph_data %>% 
   group_by(year) %>% 
   summarise(size = n()) %>%
-  kable(caption = "Sample size by year")
+  kable(caption = "Sample Size By Year")
 
 ```
 
@@ -1185,7 +1183,7 @@ morph_data %>%
   ggplot(aes(x=date_diff, y=log(ppm))) +
     geom_point() +
     geom_smooth() +
-    ggtitle("log(ppm) against date difference") +
+    ggtitle("log(ppm) Against Date Difference") +
     theme(plot.title = element_text(hjust = 0.5)) 
 
 ```
@@ -1197,7 +1195,7 @@ plot1 <- morph_data %>%
   ggplot(aes(x=mgstr, y=log(ppm))) +
     geom_point() +
     geom_smooth() +
-    ggtitle("log(ppm) against strength") +
+    ggtitle("log(ppm) Against Strength") +
     theme(plot.title = element_text(hjust = 0.5)) 
 
 
@@ -1213,7 +1211,7 @@ plot2 <- morph_data %>%
       bins=10
     ) +
     geom_density(size=0.75, bw=7.5) +
-  ggtitle("strength distribution") +
+  ggtitle("Strength Distribution") +
   theme(plot.title = element_text(hjust = 0.5)) 
 
 grid.arrange(plot1,plot2, ncol =2)
@@ -1227,7 +1225,7 @@ morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) +
   geom_point() +
   geom_smooth() +
   facet_wrap('usa_region', scales = "fixed") +
-  ggtitle("log(ppm) against mgstr across regions") +
+  ggtitle("log(ppm) Against mgstr Across Regions") +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
@@ -1237,7 +1235,7 @@ morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) +
 quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
   data.frame() %>%
   rename('mgstr'='.') %>%
-  kable(caption = "quantile of mgstr")
+  kable(caption = "Quantile of mgstr")
 
 ```
 
@@ -1263,7 +1261,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "log(ppm)", y = "Strength")  +
-  ggtitle("log(pmm) vs. bulk purchase x strength") +
+  ggtitle("log(pmm) vs. Bulk Purchase x Strength") +
   theme(plot.title = element_text(hjust = 0.5))
 
 morph_data %>%
@@ -1271,7 +1269,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "log(ppm)", y = "Strength")  +
-  ggtitle("log(pmm) vs. quarter x strength") +
+  ggtitle("log(pmm) vs. Quarter x Strength") +
   theme(plot.title = element_text(hjust = 0.5))
 
 morph_data %>%
@@ -1279,7 +1277,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "Primary Reason", y = "log(ppm)")  +
-  ggtitle("log(pmm) vs. bulk purchase x primary reason") +
+  ggtitle("log(pmm) vs. Bulk Purchase x Primary Reason") +
   theme(plot.title = element_text(hjust = 0.5))
 
 morph_data %>%
@@ -1287,7 +1285,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "Primary Reason", y = "log(ppm)")  +
-  ggtitle("log(pmm) vs. quarter x primary reason") +
+  ggtitle("log(pmm) vs. Quarter x Primary Reason") +
   theme(plot.title = element_text(hjust = 0.5))
 
 
@@ -1534,7 +1532,7 @@ model_diag <- function(model) {
 
 **Diagnostic plots for model_g2 (drop one observation with the lowest residual in model_g)**
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, echo = FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
@@ -2129,7 +2127,8 @@ mod_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region), REML=F)
 aic_score <- sapply(c(mod_1, mod_2, mod_3), AIC)
 bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
 
-data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
+data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 
+           'BIC' = bic_score) %>%
   kable(caption = "AIC and BIC for different grouping variables")
  
 ```
@@ -2137,21 +2136,25 @@ data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' =
 ```{r, eval=FALSE}
 # appendix
 # group by city
-mod_full_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter + year + mgstr2 +
+mod_full_1 <- lmer(data=morph_data, log(ppm) ~ (1 |city) + date_diff + quarter 
+                   + year + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 # group by state
-mod_full_2 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter + year + mgstr2 +
+mod_full_2 <- lmer(data=morph_data, log(ppm) ~ (1 |state) + date_diff + quarter 
+                   + year + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 # group by region
-mod_full_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + quarter + year + mgstr2 +
+mod_full_3 <- lmer(data=morph_data, log(ppm) ~ (1 |usa_region) + date_diff + 
+                     quarter + year + mgstr2 +
                 bulk_purchase + primary_reason + source, REML=F)
 
 aic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), AIC)
 bic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), BIC)
 
-data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
+data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 
+           'BIC' = bic_score) %>%
   kable() %>%
     kable_styling(latex_options = c("hold_position","striped"))
  
@@ -2159,7 +2162,9 @@ data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' =
 
 
 ```{r, eval=FALSE}
-modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
+modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase 
+                 + year + date_diff + source + (1|state), data = morph_data, 
+                 REML=F)
 step(modelAll)
 
 ```
@@ -2172,7 +2177,8 @@ model <- c("(1|state)",
            "(1|state) + mgstr2 + bulk_purchase + quarter",
            "(1|state) + mgstr2 + bulk_purchase + date_diff",
            "(1|state) + mgstr2 + bulk_purchase + quarter + source",
-           "(1|state) + mgstr2 + bulk_purchase + quarter + source + primary_reason")
+           "(1|state) + mgstr2 + bulk_purchase + quarter + source +
+           primary_reason")
 LRT <- c("",
          round(anova(modela,modelb)$`Pr(>Chisq)`[2],4),
          round(anova(modelb,modelc)$`Pr(>Chisq)`[2],4),
@@ -2181,7 +2187,8 @@ LRT <- c("",
          round(anova(modelc,modelf)$`Pr(>Chisq)`[2],4),
          round(anova(modele,modelg)$`Pr(>Chisq)`[2],4),
          round(anova(modelg,modelh)$`Pr(>Chisq)`[2],4))
-BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
+BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg,
+                       modelh), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
   kable(caption = "Forward model selection") %>%
     kable_styling(latex_options = c("hold_position","striped"))
@@ -2190,18 +2197,25 @@ data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
 ```
 
 ```{r, echo=FALSE, eval=FALSE}
-modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
-modelg_qb <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                 (1|state), data = morph_data, REML=F)
+modelg_qb <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                    (1|state) + 
                  quarter * bulk_purchase, data = morph_data, REML=F)
-modelg_qm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_qm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                    (1|state) + 
                  quarter * mgstr2, data = morph_data, REML=F)
-modelg_bm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_bm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                    (1|state) + 
                  bulk_purchase * mgstr2, data = morph_data, REML=F)
-modelg_qs <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_qs <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                    (1|state) + 
                  quarter * source, data = morph_data , REML=F)
-modelg_bs <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_bs <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                    (1|state) + 
                  bulk_purchase * source, data = morph_data, REML=F)
-modelg_sm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state) + 
+modelg_sm <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                    (1|state) + 
                  source * mgstr2, data = morph_data, REML=F)
 
 model <- c("without interaction",
@@ -2226,7 +2240,8 @@ data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
 ```
 
 ```{r, eval=FALSE}
-modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                 (1|state), data = morph_data, REML=F)
 ```
 
 ```{r, eval=FALSE}
@@ -2390,7 +2405,8 @@ model_diag(modelg)
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
 
-model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2, REML=F)
+model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                   (1|state), data = morph_data2, REML=F)
 
 
 # view_coef(model_g2)
@@ -2439,7 +2455,8 @@ data.frame(
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
 
-model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data3, REML=F)
+model_g3 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
+                   (1|state), data = morph_data3, REML=F)
 
 model_diag(model_g3)
 ```
