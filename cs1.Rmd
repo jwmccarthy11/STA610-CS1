@@ -1021,13 +1021,14 @@ view_params(model_g2) %>%
 
 The estimated across-state variance is $\hat{\tau^2} = 0.0161$, which also describes the variation attributed to the random intercept. The estimated within-state variance is $\hat{\sigma^2} = 0.7772$, which describes the unexplained variation. The estimated interclass correlation is $\frac{\hat{\tau^2}}{\hat{\tau^2} + \hat{\sigma^2}} \approx 0.02$. Therefore, we have little correlation within the same state.
 
+From the random intercepts plot below, we can see that states have different bases per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk.
 
 ```{r, fig.height=7.5, fig.width=9, echo=FALSE, message =FALSE}
 # view intercept estimates and intervals
 dotplot(ranef(model_g2, condVar = TRUE))$state
 ```
 
-From the random intercepts plot, we can see that states have different bases per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk
+
 
 ```{r, echo=FALSE, eval =FALSE}
 ranef(model_g2, condVar = TRUE) %>%
