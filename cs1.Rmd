@@ -12,7 +12,7 @@ output:
     keep_tex: true
     latex_engine: xelatex
 fontsize: 11pt
-geometry: margin=1.5cm
+geometry: "left=1.5cm,right=1.5cm,top=1.25cm,bottom=1.75cm"
 ---
 
 
@@ -21,28 +21,22 @@ knitr::opts_chunk$set(warning=FALSE, message = FALSE, cache = TRUE)
 library(tidyverse)
 library(janitor)
 library(gridExtra)
+library(kableExtra)
 library(cowplot)
 library(knitr)
-require(magrittr)
-require(dplyr)
-library(kableExtra)
+library(magrittr)
+library(dplyr)
 library(readr)
 library(tidyr)
 library(broom)
 library(lme4)
 library(glmmTMB)
 library(sjPlot)
-library(brms)
 library(coda)
-library(rstan)
-library(tidybayes)
 library(naniar)
 library(olsrr)
 library(lmerTest)
-require(lattice)
-
-# devtools::install_github("goodekat/redres")
-#library(redres)
+library(lattice)
 ```
 
 ```{r, echo=FALSE}
@@ -80,8 +74,7 @@ gg_miss_upset(na_check)
 
 
 ```{r,results ='hide', echo=FALSE}
-# subset for group drug
-
+# subset for group drug & recode
 morph_data <- streetrx %>%
   filter(api_temp == 'morphine')
 
@@ -119,8 +112,8 @@ Additionally, we removed non-positive price values as well as price values great
 
 ```{r, fig.width=8, fig.height=3, echo=FALSE}
 # remove extreme outliers based on quantiles
-
 # untransformed density
+
 p1 <- morph_data %>%
   ggplot(aes(x=ppm)) +
     geom_histogram(
@@ -209,6 +202,7 @@ state_size %>%
 
 ```{r, echo=FALSE}
 # remove low sample size states
+
 morph_data <- morph_data %>%
   mutate(state=as.character(state)) %>%
   filter(!state %in% c(
@@ -294,12 +288,13 @@ Our visualizations suggested there is no clear indication that the log value of 
 
 
 ```{r, results='hide', echo=FALSE, eval=FALSE}
-min(as.Date(morph_data$price_date, "%m/%d/%y")) #2013-01-01
+min(as.Date(morph_data$price_date, "%m/%d/%y"))
 morph_data %>% group_by(year) %>% summarise(n = n())
 ```
 
 ```{r, echo=FALSE}
 # remove data prior to 2010
+
 morph_data <- morph_data %>%
   mutate(Year=as.character(year)) %>%
   filter(!year %in% c(
@@ -310,6 +305,7 @@ morph_data <- morph_data %>%
 
 ```{r, echo=FALSE}
 # date_diff
+
 morph_data <- morph_data %>% 
   mutate(date_diff = as.numeric(
     as.Date(morph_data$price_date, "%m/%d/%y") - as.Date("2010-01-01")
@@ -459,12 +455,6 @@ morph_data %>%
     geom_smooth() +
     theme_bw()
 
-# morph_data %>%
-#   ggplot(aes(x=log(mgstr), y=log(ppm))) +
-#     geom_point() +
-#     geom_smooth() +
-#     theme_bw()
-
 morph_data %>%
   ggplot(aes(x=mgstr)) +
     geom_histogram(
@@ -516,7 +506,8 @@ quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
 ```
 
 ```{r, fig.width=10, fig.height=3, echo=FALSE}
-## here we decide to re-code mgstr by quantile
+## decide to re-code mgstr by quantile
+
 morph_data <- morph_data %>%
   mutate(mgstr2 = case_when(
     mgstr <= 15              ~ "1 low",
@@ -728,6 +719,16 @@ The response variable and predictors are defined as:
  
  - $S_{ij}$: Source of information (including first-hand and second-hand sources)
 
+**Model Assumptions**
+
+ - There is a linear relationship between the dependent variable `log(ppm)` and the predictors
+ 
+ - $y_{ij}$'s are independent
+ 
+ - The variance of $y_{ij}$ in each group should be the same
+
+ - $\epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)$
+
 
 ### Model Diagnostics
 
@@ -887,7 +888,7 @@ model_diag <- function(model) {
 model_diag(modelg)
 ```
 
- - `Residual vs. Fitted plot`: The residuals are spread equally around the horizontal line, indicating there is no non-linear relationship. 
+ - `Residual vs. Fitted plot`: The residuals are spread equally around the horizontal line, indicating there is no non-linear relationship. Besides, the equal variance assumption is met.
  - `Normal QQ plot for residuals`: The normality assumption is slightly met since our residuals adhere around the diagonal line representing normality but have heavy tails on both sides. We also have one data point that deviates severely from the diagonal line. 
  - `Normal QQ plot for Random Effects`: We can accept the random effects are normally distributed. But we still have three outliers. 
  - `Cook's Distance`: We have 3 highly influential states (Florida, Pennsylvania, and California) whose Cook's distance exceeds the $\frac{4}{n}$ cutoff, where n denotes the number of states.
@@ -898,11 +899,11 @@ To address the violated assumptions, we tried to remove the data point with the 
 
 ```{r, fig.align = 'center', fig.height=3.5, fig.width=6.5, echo=FALSE,align}
 # remove lowest residual data point
+
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
 
 
 model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2, REML=F)
-
 
 # view_coef(model_g2)
 # view_params(model_g2)
@@ -1023,11 +1024,12 @@ The estimated across-state variance is $\hat{\tau^2} = 0.0161$, which also descr
 
 From the random intercepts plot below, we can see that states have different bases per milligram morphine prices. The prices ranges from $e^{-0.2297} = 0.7948$ (Michigan) to $e^{0.2063} = 1.2292$ (Massachusetts). These estimates are based on the baseline condition of all other predictors, which are purchasing in quarter 1, from an unknown source, with low dosage strength, and not purchased in bulk.
 
-```{r, fig.height=7.5, fig.width=9, echo=FALSE, message =FALSE}
+```{r, fig.align = 'center', fig.width= 7, fig.height = 6, echo=FALSE, message =FALSE,results='hide'}
 # view intercept estimates and intervals
-dotplot(ranef(model_g2, condVar = TRUE))$state
-```
 
+dotplot(ranef(model_g2, condVar = TRUE))$state
+
+```
 
 
 ```{r, echo=FALSE, eval =FALSE}
@@ -1038,9 +1040,11 @@ ranef(model_g2, condVar = TRUE) %>%
   kable()
 ```
 
-# Limitations
+# Strength and Limitations
 
-Our analysis and model have several limitations. Firstly, StreetRX provides only self-reported data, which is likely to be messy, biased, and lacking credibility. Although we borrow information across states via a hierarchical model, states with small sample sizes are still problematic. The within-state variance $\sigma^2$ is much larger than the across-state variance $\tau^2$, indicating that there is still much within-state variation left unexplained. This suggests that the per milligram price of morphine may depend on factors not on the state level. Having access to more predictors may help explain these variations and improve the model performance.
+**Strength:** We have collected a considerable amount of data from StreetRX, which allows us to account for potential clustering and exploring heterogeneity in pricing by location (states). Even though some states have small sample sizes, a hierarchical model helps mitigate the issue. We have access to many predictors, which allows a well-rounded analysis of the potential factors that may affect the drug price.
+
+**Limitations:** Firstly, StreetRX provides only self-reported data, which is likely messy, biased, and lacking credibility. Although we borrow information across states via a hierarchical model, states with small sample sizes are still problematic. The within-state variance $\sigma^2$ is much larger than the across-state variance $\tau^2$, indicating that there is still much within-state variation left unexplained. This suggests that the per milligram price of morphine may depend on factors not on the state level. Having access to more predictors may help explain these variations and improve the model performance.
 
 
 \newpage
@@ -1610,6 +1614,7 @@ ranef(model_g2, condVar = TRUE) %>%
   kable(caption = "Estimated random intercepts",longtable = T, digits =4) %>%
   kable_styling(latex_options = c("HOLD_position"))
 ```
+
 \newpage
 
 
@@ -1620,28 +1625,22 @@ knitr::opts_chunk$set(warning=FALSE, message = FALSE, cache = TRUE)
 library(tidyverse)
 library(janitor)
 library(gridExtra)
+library(kableExtra)
 library(cowplot)
 library(knitr)
-require(magrittr)
-require(dplyr)
-library(kableExtra)
+library(magrittr)
+library(dplyr)
 library(readr)
 library(tidyr)
 library(broom)
 library(lme4)
 library(glmmTMB)
 library(sjPlot)
-library(brms)
 library(coda)
-library(rstan)
-library(tidybayes)
 library(naniar)
 library(olsrr)
 library(lmerTest)
-require(lattice)
-
-# devtools::install_github("goodekat/redres")
-#library(redres)
+library(lattice)
 ```
 
 ```{r, eval=FALSE}
@@ -2079,7 +2078,7 @@ grid.arrange(arrangeGrob(plot1, ncol=1, nrow=1),
 
 ## Interaction Plot
 
-```{r}
+```{r, eval=FALSE}
 morph_data %>%
   ggplot(aes(x = mgstr2,y =log(ppm), fill = bulk_purchase)) +
   geom_boxplot() +
