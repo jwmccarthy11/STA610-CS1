@@ -109,6 +109,7 @@ Additionally, we removed non-positive price values as well as price values great
 
 ### Response Variable: Price per milligram 
 
+Whether we fit a hierarchical model or linear regression, the response variable should be normally distributed. Although the normality assumption pertains to the conditional distribution of our response variable, it's still beneficial to check the assumption for the marginal distribution as a very skewed marginal distribution could persist and affect the model's resulting conditional distribution. From the histogram on the left, the distribution of `ppm` is clearly right-skewed. Since `ppm` is strictly non-negative, a log transformation may be appropriate. We can see that the distribution of `log(ppm)`, given below, appears to be much closer to the desired normal distribution.
 
 ```{r, fig.width=8, fig.height=3, echo=FALSE}
 # remove extreme outliers based on quantiles
@@ -154,7 +155,7 @@ grid.arrange(p1, p2, ncol=2)
 ```
 
 
-Whether we fit a hierarchical model or linear regression, the response variable should be normally distributed. Although the normality assumption pertains to the conditional distribution of our response variable, it's still beneficial to check the assumption for the marginal distribution as a very skewed marginal distribution could persist and affect the model's resulting conditional distribution. From the histogram on the left, the distribution of `ppm` is clearly right-skewed. Since `ppm` is strictly non-negative, a log transformation may be appropriate. We can see that the distribution of `log(ppm)`, given above, appears to be much closer to the desired normal distribution.
+
 
 
 
@@ -1040,9 +1041,11 @@ ranef(model_g2, condVar = TRUE) %>%
   kable()
 ```
 
-# Strength and Limitations
+# Strengths and Limitations
 
-**Strength:** We have collected a considerable amount of data from StreetRX, which allows us to account for potential clustering and exploring heterogeneity in pricing by location (states). Even though some states have small sample sizes, a hierarchical model helps mitigate the issue. We have access to many predictors, which allows a well-rounded analysis of the potential factors that may affect the drug price.
+**Strengths:** 
+
+The strength of our model comes largely from the hierarchical structure which allows information to be shared across the states. Without this, the amount of data that could reasonably been used would be more limited due to small state sample sizes. Additionally, we are able to easily interpret our model due to the limited number of predictors included, as decided by rigorous model selection. Additionally, treating the strength of the drug, mgstr, as a discrete variable meant that interpretation was more meaningful and interpolation was avoided.
 
 **Limitations:** Firstly, StreetRX provides only self-reported data, which is likely messy, biased, and lacking credibility. Although we borrow information across states via a hierarchical model, states with small sample sizes are still problematic. The within-state variance $\sigma^2$ is much larger than the across-state variance $\tau^2$, indicating that there is still much within-state variation left unexplained. This suggests that the per milligram price of morphine may depend on factors not on the state level. Having access to more predictors may help explain these variations and improve the model performance.
 

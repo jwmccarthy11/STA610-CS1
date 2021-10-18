@@ -42,7 +42,7 @@
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
-\usepackage[margin=1.5cm]{geometry}
+\usepackage[left=1.5cm,right=1.5cm,top=1.25cm,bottom=1.75cm]{geometry}
 \usepackage{color}
 \usepackage{fancyvrb}
 \newcommand{\VerbBar}{|}
@@ -163,8 +163,6 @@ is now 5,582.
 \subsubsection{Response Variable: Price per
 milligram}\label{response-variable-price-per-milligram}}
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-4-1.pdf}
-
 Whether we fit a hierarchical model or linear regression, the response
 variable should be normally distributed. Although the normality
 assumption pertains to the conditional distribution of our response
@@ -174,8 +172,10 @@ affect the model's resulting conditional distribution. From the
 histogram on the left, the distribution of \texttt{ppm} is clearly
 right-skewed. Since \texttt{ppm} is strictly non-negative, a log
 transformation may be appropriate. We can see that the distribution of
-\texttt{log(ppm)}, given above, appears to be much closer to the desired
+\texttt{log(ppm)}, given below, appears to be much closer to the desired
 normal distribution.
+
+\includegraphics{cs1_files/figure-latex/unnamed-chunk-4-1.pdf}
 
 \hypertarget{grouping-variable-city-state-and-region}{%
 \subsubsection{Grouping Variable: city, state, and
@@ -399,6 +399,20 @@ The response variable and predictors are defined as:
   second-hand sources)
 \end{itemize}
 
+\textbf{Model Assumptions}
+
+\begin{itemize}
+\item
+  There is a linear relationship between the dependent variable
+  \texttt{log(ppm)} and the predictors
+\item
+  \(y_{ij}\)'s are independent
+\item
+  The variance of \(y_{ij}\) in each group should be the same
+\item
+  \(\epsilon_{ij} \stackrel{iid} \sim \mathcal{N}(0, \sigma^2)\)
+\end{itemize}
+
 \hypertarget{model-diagnostics}{%
 \subsubsection{Model Diagnostics}\label{model-diagnostics}}
 
@@ -409,7 +423,7 @@ The response variable and predictors are defined as:
 \item
   \texttt{Residual\ vs.\ Fitted\ plot}: The residuals are spread equally
   around the horizontal line, indicating there is no non-linear
-  relationship.
+  relationship. Besides, the equal variance assumption is met.
 \item
   \texttt{Normal\ QQ\ plot\ for\ residuals}: The normality assumption is
   slightly met since our residuals adhere around the diagonal line
@@ -537,21 +551,32 @@ different bases per milligram morphine prices. The prices ranges from
 all other predictors, which are purchasing in quarter 1, from an unknown
 source, with low dosage strength, and not purchased in bulk.
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-35-1.pdf}
+\begin{center}\includegraphics{cs1_files/figure-latex/unnamed-chunk-35-1} \end{center}
 
-\hypertarget{limitations}{%
-\section{Limitations}\label{limitations}}
+\hypertarget{strengths-and-limitations}{%
+\section{Strengths and Limitations}\label{strengths-and-limitations}}
 
-Our analysis and model have several limitations. Firstly, StreetRX
-provides only self-reported data, which is likely to be messy, biased,
-and lacking credibility. Although we borrow information across states
-via a hierarchical model, states with small sample sizes are still
-problematic. The within-state variance \(\sigma^2\) is much larger than
-the across-state variance \(\tau^2\), indicating that there is still
-much within-state variation left unexplained. This suggests that the per
-milligram price of morphine may depend on factors not on the state
-level. Having access to more predictors may help explain these
-variations and improve the model performance.
+\textbf{Strengths:}
+
+The strength of our model comes largely from the hierarchical structure
+which allows information to be shared across the states. Without this,
+the amount of data that could reasonably been used would be more limited
+due to small state sample sizes. Additionally, we are able to easily
+interpret our model due to the limited number of predictors included, as
+decided by rigorous model selection. Additionally, treating the strength
+of the drug, mgstr, as a discrete variable meant that interpretation was
+more meaningful and interpolation was avoided.
+
+\textbf{Limitations:} Firstly, StreetRX provides only self-reported
+data, which is likely messy, biased, and lacking credibility. Although
+we borrow information across states via a hierarchical model, states
+with small sample sizes are still problematic. The within-state variance
+\(\sigma^2\) is much larger than the across-state variance \(\tau^2\),
+indicating that there is still much within-state variation left
+unexplained. This suggests that the per milligram price of morphine may
+depend on factors not on the state level. Having access to more
+predictors may help explain these variations and improve the model
+performance.
 
 \newpage
 
@@ -854,6 +879,7 @@ state & (Intercept) & Arizona & -0.2192 & 0.0514 & 0.8031\\
 state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
 \hline
 \end{longtable}
+
 \newpage
 
 \hypertarget{codes}{%
@@ -865,28 +891,22 @@ state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
 \KeywordTok{library}\NormalTok{(tidyverse)}
 \KeywordTok{library}\NormalTok{(janitor)}
 \KeywordTok{library}\NormalTok{(gridExtra)}
+\KeywordTok{library}\NormalTok{(kableExtra)}
 \KeywordTok{library}\NormalTok{(cowplot)}
 \KeywordTok{library}\NormalTok{(knitr)}
-\KeywordTok{require}\NormalTok{(magrittr)}
-\KeywordTok{require}\NormalTok{(dplyr)}
-\KeywordTok{library}\NormalTok{(kableExtra)}
+\KeywordTok{library}\NormalTok{(magrittr)}
+\KeywordTok{library}\NormalTok{(dplyr)}
 \KeywordTok{library}\NormalTok{(readr)}
 \KeywordTok{library}\NormalTok{(tidyr)}
 \KeywordTok{library}\NormalTok{(broom)}
 \KeywordTok{library}\NormalTok{(lme4)}
 \KeywordTok{library}\NormalTok{(glmmTMB)}
 \KeywordTok{library}\NormalTok{(sjPlot)}
-\KeywordTok{library}\NormalTok{(brms)}
 \KeywordTok{library}\NormalTok{(coda)}
-\KeywordTok{library}\NormalTok{(rstan)}
-\KeywordTok{library}\NormalTok{(tidybayes)}
 \KeywordTok{library}\NormalTok{(naniar)}
 \KeywordTok{library}\NormalTok{(olsrr)}
 \KeywordTok{library}\NormalTok{(lmerTest)}
-\KeywordTok{require}\NormalTok{(lattice)}
-
-\CommentTok{# devtools::install_github("goodekat/redres")}
-\CommentTok{#library(redres)}
+\KeywordTok{library}\NormalTok{(lattice)}
 \end{Highlighting}
 \end{Shaded}
 
@@ -1365,13 +1385,7 @@ state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
 \StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"log(ppm)"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"Strength"}\NormalTok{)  }\OperatorTok{+}
 \StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. bulk purchase x strength"}\NormalTok{) }\OperatorTok{+}
 \StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
-\end{Highlighting}
-\end{Shaded}
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-1.pdf}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \NormalTok{morph_data }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ mgstr2,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ quarter)) }\OperatorTok{+}
 \StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
@@ -1379,13 +1393,7 @@ state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
 \StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"log(ppm)"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"Strength"}\NormalTok{)  }\OperatorTok{+}
 \StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. quarter x strength"}\NormalTok{) }\OperatorTok{+}
 \StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
-\end{Highlighting}
-\end{Shaded}
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-2.pdf}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \NormalTok{morph_data }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ primary_reason,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ bulk_purchase)) }\OperatorTok{+}
 \StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
@@ -1393,13 +1401,7 @@ state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
 \StringTok{  }\KeywordTok{labs}\NormalTok{(}\DataTypeTok{x =} \StringTok{"Primary Reason"}\NormalTok{, }\DataTypeTok{y =} \StringTok{"log(ppm)"}\NormalTok{)  }\OperatorTok{+}
 \StringTok{  }\KeywordTok{ggtitle}\NormalTok{(}\StringTok{"log(pmm) vs. bulk purchase x primary reason"}\NormalTok{) }\OperatorTok{+}
 \StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
-\end{Highlighting}
-\end{Shaded}
 
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-3.pdf}
-
-\begin{Shaded}
-\begin{Highlighting}[]
 \NormalTok{morph_data }\OperatorTok{%>%}
 \StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =}\NormalTok{ primary_reason,}\DataTypeTok{y =}\KeywordTok{log}\NormalTok{(ppm), }\DataTypeTok{fill =}\NormalTok{ quarter)) }\OperatorTok{+}
 \StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{() }\OperatorTok{+}
@@ -1409,8 +1411,6 @@ state & (Intercept) & Michigan & -0.2297 & 0.0490 & 0.7948\\
 \StringTok{  }\KeywordTok{theme}\NormalTok{(}\DataTypeTok{plot.title =} \KeywordTok{element_text}\NormalTok{(}\DataTypeTok{hjust =} \FloatTok{0.5}\NormalTok{))}
 \end{Highlighting}
 \end{Shaded}
-
-\includegraphics{cs1_files/figure-latex/unnamed-chunk-83-4.pdf}
 
 \begin{Shaded}
 \begin{Highlighting}[]
