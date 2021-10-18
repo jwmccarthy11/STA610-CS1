@@ -111,7 +111,7 @@ Additionally, we removed non-positive price values as well as price values great
 
 Whether we fit a hierarchical model or linear regression, the response variable should be normally distributed. Although the normality assumption pertains to the conditional distribution of our response variable, it's still beneficial to check the assumption for the marginal distribution as a very skewed marginal distribution could persist and affect the model's resulting conditional distribution. From the histogram on the left, the distribution of `ppm` is clearly right-skewed. Since `ppm` is strictly non-negative, a log transformation may be appropriate. We can see that the distribution of `log(ppm)`, given below, appears to be much closer to the desired normal distribution.
 
-```{r, fig.width=8, fig.height=3, echo=FALSE}
+```{r, fig.align='center', fig.width=8, fig.height=3, echo=FALSE}
 # remove extreme outliers based on quantiles
 # untransformed density
 
@@ -212,7 +212,7 @@ morph_data <- morph_data %>%
 ```
 
 
-```{r, fig.width=12, fig.height=3, echo=FALSE, message=FALSE}
+```{r, fig.align='center', fig.width=12, fig.height=3, echo=FALSE, message=FALSE}
 morph_state <- morph_data %>%
   filter(state %in% state.name) %>%
   mutate(state_abv=state.abb[match(state,state.name)])
@@ -258,7 +258,7 @@ From the above boxplot of `log(ppm)` against `state`, it is also evident that th
 
 From the boxplot we see that the `log(ppm)` distributions differ slightly across regions, though not as much as across states. We may also consider using region as the grouping variable.
 
-```{r, fig.height=3, fig.width=10, echo=FALSE}
+```{r, fig.align='center', fig.height=3, fig.width=10, echo=FALSE}
 t1 <- morph_state %>%
   group_by(usa_region) %>%
   summarise(n=n(), mean=round(mean(log(ppm)), 3)) %>%
@@ -271,7 +271,7 @@ p5 <- morph_state %>%
       fun.y=mean, 
       geom='point',
       color='red',
-      size=3
+      size=1
     ) +
     ggtitle("Figure 5: Boxplot of log(pmm) across regions") +
     theme(plot.title = element_text(hjust = 0.5)) 
@@ -360,7 +360,7 @@ yearplot <- morph_data %>%
     fun.y=mean, 
     geom='point',
     color='red',
-    size=3
+    size=1
   ) +
   ggtitle("Figure 6: log(pmm) vs. years") +
   theme(plot.title = element_text(hjust = 0.5)) 
@@ -378,7 +378,7 @@ quarterplot <- morph_data %>%
     fun.y=mean, 
     geom='point',
     color='red',
-    size=3
+    size=1
   ) +
   ggtitle("Figure 7: log(pmm) vs. quarters") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -388,7 +388,7 @@ grid.arrange(yearplot, quarterplot, ncol=2)
 
 ### Bulk_purchase & Source
 
-```{r, fig.width=10, fig.height=3, echo=FALSE, message=FALSE}
+```{r, fig.align='center', fig.width=10, fig.height=3, echo=FALSE, message=FALSE}
 
 plot1 <- morph_data %>%
   ggplot(aes(x = bulk_purchase,y = log(ppm))) +
@@ -398,7 +398,7 @@ plot1 <- morph_data %>%
     fun.y=mean, 
     geom='point',
     color='red',
-    size=3
+    size=1
   ) +
   ggtitle("Figure 8: log(pmm) vs. bulk purchase") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -432,7 +432,7 @@ plot2 <- morph_data %>%
     fun.y=mean, 
     geom='point',
     color='red',
-    size=2
+    size=1
   ) +
   ggtitle("Figure 9: log(pmm) vs. source") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -449,7 +449,7 @@ For the feature `source`, we have recoded the missing value as "Blank" and the n
 
 ### Dosage Strength & Primary Reason
 
-```{r, echo=FALSE, eval =FALSE}
+```{r, fig.align='center', echo=FALSE, eval =FALSE}
 morph_data %>%
   ggplot(aes(x=mgstr, y=log(ppm))) +
     geom_point() +
@@ -474,7 +474,7 @@ morph_data %>%
 ```
 
 
-```{r, echo=FALSE, eval =FALSE}
+```{r, fig.align='center', echo=FALSE, eval =FALSE}
 # check for random slopes
 morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) + 
   geom_point() +
@@ -483,7 +483,7 @@ morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) +
   facet_wrap('usa_region', scales = "fixed")
 ```
 
-```{r, fig.width=3, fig.height=3, echo=FALSE, eval =FALSE}
+```{r, fig.align='center', fig.width=3, fig.height=3, echo=FALSE, eval =FALSE}
 morph_data %>% 
   group_by(mgstr) %>% 
   summarize(n = n()) %>%
@@ -506,7 +506,7 @@ quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
 
 ```
 
-```{r, fig.width=10, fig.height=3, echo=FALSE}
+```{r, fig.align='center', fig.width=10, fig.height=3, echo=FALSE}
 ## decide to re-code mgstr by quantile
 
 morph_data <- morph_data %>%
@@ -525,7 +525,7 @@ plot1 <- morph_data %>%
     fun.y=mean, 
     geom='point',
     color='red',
-    size=3
+    size=1
   ) +
   ggtitle("log(pmm) vs. strength") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -540,7 +540,7 @@ plot2 <- morph_data %>%
       fun.y=mean, 
       geom='point',
       color='red',
-      size=3
+      size=1
     ) +
   ggtitle("log(pmm) vs. reasons") +
   theme(plot.title = element_text(hjust = 0.5))
@@ -581,7 +581,8 @@ aic_score <- sapply(c(mod_1, mod_2, mod_3), AIC)
 bic_score <- sapply(c(mod_1, mod_2, mod_3), BIC)
 
 data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
-  kable(caption = "AIC and BIC for different grouping variables")
+  kable(caption = "AIC and BIC for different grouping variables") %>%
+    kable_styling(latex_options = c("HOLD_position","striped"))
  
 ```
 
@@ -604,21 +605,14 @@ bic_score <- sapply(c(mod_full_1, mod_full_2, mod_full_3), BIC)
 
 data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' = bic_score) %>%
   kable() %>%
-    kable_styling(latex_options = c("hold_position","striped"))
+    kable_styling(latex_options = c("HOLD_position","striped"))
  
 ```
 
-Our baseline model incorporates only the state-level random intercepts. For other individual-level predictors, we add one variable to the model each time and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The LRT is designed for nested models while the BIC score considers both the likelihood and the model complexity and gives a more general sense of model performance while also being consistent. Tables 1 and 2 display the results of model selection. We also used the full model as a starting point to perform stepwise backward elimination with the results agreeing with the previous model selection method. (See appendix).
+Our baseline model incorporates only the state-level random intercepts. For other individual-level predictors, we add one variable to the model each time and use both the Likelihood Ratio test and the BIC score to determine whether it should be added. The LRT is designed for nested models while the BIC score considers both the likelihood and the model complexity and gives a more general sense of model performance while also being consistent. Tables 1 and 2 display the results of model selection. For `mgstr`, we tried both the original values and the recoded values. The BIC score suggests adding the discrete levels of dosage strength into the model (see appendix). We also used the full model as a starting point to perform stepwise backward elimination with the results agreeing with the previous model selection method. (See appendix).
 
 Our final model incorporates the grouping variable `state` and the individual level predictors `mgstr` (recoded as 4 levels), as well as `bulk_purchase`, `quarter`, and `source`. 
 
-
-
-```{r, eval = FALSE, echo =FALSE}
-modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
-step(modelAll)
-
-```
 
 
 ```{r, echo=FALSE}
@@ -650,11 +644,20 @@ LRT <- c("",
 BIC_score1 <- sapply(c(modela, modelb, modelc, modeld, modele, modelf, modelg, modelh), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
   kable(caption = "Forward model selection") %>%
-    kable_styling(latex_options = c("hold_position","striped"))
+    kable_styling(latex_options = c("HOLD_position","striped"))
 
 
 ```
 
+```{r, echo=FALSE, eval =FALSE}
+modelbb <- lmer(log(ppm) ~  mgstr + (1|state), data = morph_data, REML=F) # 
+anova(modela, modelbb)
+```
+
+```{r, eval = FALSE, echo =FALSE}
+modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
+step(modelAll)
+```
 
 
 ### Interactions
@@ -692,7 +695,7 @@ BIC_score1 <- sapply(c(modelg, modelg_qb, modelg_qm, modelg_bm,
                        modelg_qs, modelg_bs, modelg_sm), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
   kable(caption = "Interaction") %>%
-    kable_styling(latex_options = c("hold_position","striped"))
+    kable_styling(latex_options = c("HOLD_position","striped"))
 ```
 
 From the EDA, we see some potential interactions between predictors (see appendix). Here, we also tried to incorporate all possible two-way interactions into the model (one at a time), but non of them seem to pass the LRT test or improve the model BIC score (see appendix). To control the model complexity, we did not try any three-way or more complex interaction terms. Therefore, we decided not to add any interaction term into the final model.
@@ -885,7 +888,11 @@ model_diag <- function(model) {
 
 ```
 
-```{r, fig.height=3.5, fig.width=6.5, echo=FALSE}
+
+
+
+
+```{r, fig.align='center', fig.height=4, fig.width=6, echo=FALSE}
 model_diag(modelg)
 ```
 
@@ -1000,7 +1007,7 @@ view_params <- function(model) {
 
 ```{r, echo=FALSE}
 view_coef(model_g2) %>%
-  kable_styling(latex_options = c("hold_position","striped"))
+  kable_styling(latex_options = c("HOLD_position", "striped"))
 ```
 
 
@@ -1017,7 +1024,7 @@ view_coef(model_g2) %>%
 
 ```{r, echo=FALSE}
 view_params(model_g2) %>%
-  kable_styling(latex_options = c("hold_position","striped"))
+  kable_styling(latex_options = c("HOLD_position","striped"))
 
 ```
 
@@ -1043,9 +1050,7 @@ ranef(model_g2, condVar = TRUE) %>%
 
 # Strengths and Limitations
 
-**Strengths:** 
-
-The strength of our model comes largely from the hierarchical structure which allows information to be shared across the states. Without this, the amount of data that could reasonably been used would be more limited due to small state sample sizes. Additionally, we are able to easily interpret our model due to the limited number of predictors included, as decided by rigorous model selection. Additionally, treating the strength of the drug, mgstr, as a discrete variable meant that interpretation was more meaningful and interpolation was avoided.
+**Strengths:** The strength of our model comes largely from the hierarchical structure which allows information to be shared across the states. Without this, the amount of data that could reasonably been used would be more limited due to small state sample sizes. Additionally, we are able to easily interpret our model due to the limited number of predictors included, as decided by rigorous model selection. Additionally, treating the strength of the drug, `mgstr`, as a discrete variable meant that interpretation was more meaningful and interpolation was avoided.
 
 **Limitations:** Firstly, StreetRX provides only self-reported data, which is likely messy, biased, and lacking credibility. Although we borrow information across states via a hierarchical model, states with small sample sizes are still problematic. The within-state variance $\sigma^2$ is much larger than the across-state variance $\tau^2$, indicating that there is still much within-state variation left unexplained. This suggests that the per milligram price of morphine may depend on factors not on the state level. Having access to more predictors may help explain these variations and improve the model performance.
 
@@ -1105,7 +1110,7 @@ morph_data <- morph_data %>%
 **State**
 
 
-```{r, echo=FALSE, eval = FALSE}
+```{r, echo=FALSE}
 state_size <- morph_data %>%
   group_by(state) %>%
   summarise(n = n(), .groups = "drop")  %>%
@@ -1121,7 +1126,7 @@ state_size %>%
     caption = '5 States with Smallest Sample Size',
     align='c', 
     booktabs=TRUE) %>%
-  kable_styling(latex_options = c('hold_position'))
+  kable_styling(latex_options = c('HOLD_position'))
 
 ```
 
@@ -1144,7 +1149,8 @@ morph_data <- morph_data %>%
 morph_data %>% 
   group_by(year) %>% 
   summarise(size = n()) %>%
-  kable(caption = "Sample Size By Year")
+  kable(caption = "Sample Size By Year") %>%
+  kable_styling(latex_options = c('HOLD_position'))
 
 ```
 
@@ -1227,7 +1233,6 @@ grid.arrange(plot1,plot2, ncol =2)
 
 
 ```{r, echo=FALSE, eval =FALSE}
-
 # check for random slopes
 morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) + 
   geom_point() +
@@ -1243,7 +1248,8 @@ morph_data %>% ggplot(aes(x = mgstr, y = log(ppm))) +
 quantile(morph_data$mgstr, c(0.25, 0.5, 0.75)) %>%
   data.frame() %>%
   rename('mgstr'='.') %>%
-  kable(caption = "Quantile of mgstr")
+  kable(caption = "Quantile of mgstr") %>%
+  kable_styling(latex_options = c('HOLD_position'))
 
 ```
 
@@ -1258,12 +1264,30 @@ morph_data <- morph_data %>%
   )
 ```
 
+```{r,echo=FALSE}
+morph_data <- morph_data %>%
+  mutate(source=replace(
+    source, !source %in% c(
+      "Blank",
+      'Personal',
+      'Heard it', 
+      'Internet', 
+      'Internet Pharmacy', 
+      'Drug forum'
+    ), 'Internet'
+  )) %>%
+  droplevels()
 
+
+morph_data <- morph_data %>%
+  mutate(source=as.character(source)) %>%
+  filter(source != "Drug forum")
+```
 
 
 ### Interaction Plots
 
-```{r, fig.align='center', echo=FALSE, fig.width=6, fig.height=3}
+```{r, fig.align='center', echo=FALSE, fig.width=10, fig.height=4.5}
 morph_data %>%
   ggplot(aes(x = mgstr2,y =log(ppm), fill = bulk_purchase)) +
   geom_boxplot() +
@@ -1329,10 +1353,20 @@ data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score, 'BIC' =
 
 
 ```{r, echo = FALSE}
+modelbb <- lmer(log(ppm) ~  mgstr + (1|state), data = morph_data, REML=F) # 
+BIC_mgstr <- sapply(c(modelb, modelbb), BIC)
+data.frame("Predictor" = c("mgstr", "mgstr2 (4 levels)"), 'BIC' = BIC_mgstr) %>%
+  kable(caption = "Comparing BIC scores with and without recoding mgstr") %>%
+  kable_styling(latex_options = c('HOLD_position'))
+```
+
+
+```{r, echo = FALSE}
 modelAll <- lmer(log(ppm) ~ quarter + primary_reason + mgstr2 + bulk_purchase + year + date_diff + source + (1|state), data = morph_data, REML=F)
 
 kable(step(modelAll)$fixed, digits = 4,
-      caption = "Stepwise backward elimination results")
+      caption = "Stepwise backward elimination results") %>%
+  kable_styling(latex_options = c('HOLD_position'))
 
 ```
 
@@ -1376,9 +1410,8 @@ BIC_score1 <- sapply(c(modelg, modelg_qb, modelg_qm, modelg_bm,
                        modelg_qs, modelg_bs, modelg_sm), BIC)
 data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
   kable(caption = "Interaction") %>%
-    kable_styling(latex_options = c("hold_position","striped"))
+    kable_styling(latex_options = c("HOLD_position","striped"))
 ```
-
 
 
 ```{r, echo=FALSE}
@@ -1387,7 +1420,7 @@ modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state)
 
 ### Model Diagnostics
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, eval= FALSE}
 plot_qq <- function(model) {
   df <- data.frame(
     res=residuals(model, scaled=TRUE)
@@ -1540,14 +1573,11 @@ model_diag <- function(model) {
 
 **Diagnostic plots for model_g2 (drop one observation with the lowest residual in model_g)**
 
-```{r, eval=FALSE, echo = FALSE}
+```{r, fig.align = 'center',fig.height=5, fig.width=7, echo=FALSE}
 # remove lowest residual data point
 morph_data2 <- morph_data[-which.min(resid(modelg)),]
-
-
 model_g2 <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data2, REML=F)
-
-
+ 
 # view_coef(model_g2)
 # view_params(model_g2)
 model_diag(model_g2)
@@ -1556,7 +1586,7 @@ model_diag(model_g2)
 
 **Diagnostic plots for model_g3 (drop influential states)**
 
-```{r, fig.align = 'center',fig.height=6, fig.width=7, echo=FALSE}
+```{r, fig.align = 'center',fig.height=5, fig.width=7, echo=FALSE}
 # remove three most influential states
 morph_data3 <- morph_data2 %>%
   filter(!state %in% c('Florida', 'California','Pennsylvania'))
@@ -1568,46 +1598,7 @@ model_diag(model_g3)
 
 ## Conclusion
 
-### Fixed Effects
-
-```{r, echo=FALSE}
-# view coefficient estimates
-view_coef <- function(model) {
-  summary(model)$coefficients %>%
-    as.data.frame() %>%
-    mutate(`exp(Estimate)`=exp(Estimate)) %>%
-    relocate(`exp(Estimate)`, .after=Estimate) %>%
-    kable(caption = "Estimates of fixed effects",
-      digits = 4) %>%
-    kable_classic(full_width=FALSE)
-}
-
-# view parameter estimates
-view_params <- function(model) {
-  params <- summary(model)$varcor %>%
-    as.data.frame() %>%
-    dplyr::select(vcov)
-  params <- t(params)
-  rownames(params) <- c('Estimate')
-  
-  kable(params,
-        caption = "Estimates of random effects",
-        col.names = c('$\\tau^2$', '$\\sigma^2$'),
-        digits = 4,
-        format = 'latex',
-        escape = FALSE) %>% 
-  kable_classic(full_width=FALSE)
-}
-```
-
-
-```{r, echo=FALSE}
-view_coef(model_g2) %>%
-  kable_styling(latex_options = c("hold_position","striped"))
-```
-
-
-### Random Effects
+### Random Intercepts
 
 ```{r, echo=FALSE}
 ranef(model_g2, condVar = TRUE) %>%
@@ -1762,7 +1753,7 @@ state_size %>%
     caption = '5 States with Smallest Sample Size',
     align='c', 
     booktabs=TRUE) %>%
-  kable_styling(latex_options = c('hold_position'))
+  kable_styling(latex_options = c('HOLD_position'))
 
 ```
 
@@ -2087,7 +2078,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "log(ppm)", y = "Strength")  +
-  ggtitle("log(pmm) vs. bulk purchase x strength") +
+  ggtitle("log(pmm) vs. Bulk Purchase x Strength") +
   theme(plot.title = element_text(hjust = 0.5))
 
 morph_data %>%
@@ -2095,7 +2086,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "log(ppm)", y = "Strength")  +
-  ggtitle("log(pmm) vs. quarter x strength") +
+  ggtitle("log(pmm) vs. Quarter x Strength") +
   theme(plot.title = element_text(hjust = 0.5))
 
 morph_data %>%
@@ -2103,7 +2094,7 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "Primary Reason", y = "log(ppm)")  +
-  ggtitle("log(pmm) vs. bulk purchase x primary reason") +
+  ggtitle("log(pmm) vs. Bulk Purchase x Primary Reason") +
   theme(plot.title = element_text(hjust = 0.5))
 
 morph_data %>%
@@ -2111,8 +2102,10 @@ morph_data %>%
   geom_boxplot() +
   coord_flip() +
   labs(x = "Primary Reason", y = "log(ppm)")  +
-  ggtitle("log(pmm) vs. quarter x primary reason") +
+  ggtitle("log(pmm) vs. Quarter x Primary Reason") +
   theme(plot.title = element_text(hjust = 0.5))
+
+
 ```
 
 
@@ -2135,6 +2128,8 @@ data.frame('Grouping' = c('City', 'State', 'Region'), 'AIC' = aic_score,
   kable(caption = "AIC and BIC for different grouping variables")
  
 ```
+
+
 
 ```{r, eval=FALSE}
 # appendix
@@ -2173,6 +2168,16 @@ step(modelAll)
 ```
 
 ```{r, eval=FALSE}
+modela <- lmer(log(ppm) ~  (1|state), data = morph_data, REML=F) # 
+modelb <- lmer(log(ppm) ~  mgstr2 + (1|state), data = morph_data, REML=F) # 
+modelc <- lmer(log(ppm) ~  mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
+modeld <- lmer(log(ppm) ~  year + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F)
+modele <- lmer(log(ppm) ~  quarter + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
+modelf <- lmer(log(ppm) ~ date_diff + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) 
+modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) # 
+modelh<- lmer(log(ppm) ~  quarter + primary_reason + mgstr2 + bulk_purchase + (1|state), data = morph_data, REML=F) 
+
+
 model <- c("(1|state)",
            "(1|state) + mgstr2",
            "(1|state) + mgstr2 + bulk_purchase",
@@ -2198,6 +2203,15 @@ data.frame("Model" = model, 'LRT p-value' = LRT, 'BIC' = BIC_score1) %>%
 
 
 ```
+
+```{r, eval = FALSE}
+modelbb <- lmer(log(ppm) ~  mgstr + (1|state), data = morph_data, REML=F) # 
+BIC_mgstr <- sapply(c(modelb, modelbb), BIC)
+data.frame("Predictor" = c("mgstr", "mgstr2 (4 levels)"), 'BIC' = BIC_mgstr) %>%
+  kable(caption = "Comparing BIC scores with and without recoding mgstr") %>%
+  kable_styling(latex_options = c('HOLD_position'))
+```
+
 
 ```{r, echo=FALSE, eval=FALSE}
 modelg <- lmer(log(ppm) ~  quarter + source + mgstr2 + bulk_purchase + 
